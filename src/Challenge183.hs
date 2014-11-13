@@ -1,10 +1,12 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module Challenge183 where
 
 import Control.Applicative
 import Data.Attoparsec.Text
 import Data.List            hiding (intercalate)
+import Data.Maybe
 import Data.Monoid
 import Data.Ord
 import Data.Text            hiding (count, head, map)
@@ -23,8 +25,7 @@ instance Ord SemVer where
     compare = comparing major
            <> comparing minor
            <> comparing patch
-           <> comparing label
-           <> comparing meta
+           <> comparing (isNothing . label)
 
 instance (Show SemVer) where
     show (SemVer {..}) = show major
@@ -53,6 +54,6 @@ challenge183 = either (const "Failed to parse input") formatOutput . parseOnly p
 parseInput :: Parser [SemVer]
 parseInput = do n <- decimal <* endOfLine
                 count n $ parseSemVer <* (endOfLine <|> endOfInput)
-                
+
 formatOutput :: [SemVer] -> Text
 formatOutput = intercalate "\n" . map (pack . show) . sort

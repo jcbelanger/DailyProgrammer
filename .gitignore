@@ -4,6 +4,7 @@
 
 # EclipseFP
 .dist-buildwrapper/
+.HTF/
 
 # Haskell
 dist
