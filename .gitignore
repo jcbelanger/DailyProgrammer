@@ -1,3 +1,11 @@
+# Eclipse
+.settings/
+.project
+
+# EclipseFP
+.dist-buildwrapper/
+
+# Haskell
 dist
 cabal-dev
 *.o
