@@ -2,11 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Challenge183Test where
+
 import Challenge183
-
-
-import Test.Framework
 import Data.Text (intercalate)
+import Test.Framework
 
 test_sampleInput = assertEqual output (challenge183 input)
              where input  = intercalate "\n"
