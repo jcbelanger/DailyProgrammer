@@ -41,9 +41,9 @@ parseSemVer = SemVer
           <$> decimal
           <*> (char '.' *> decimal)
           <*> (char '.' *> decimal)
-          <*> optional (char '-' *> many1 alphaNum)
-          <*> optional (char '+' *> many1 alphaNum)
-          where alphaNum = letter <|> digit
+          <*> optional (char '-' *> text)
+          <*> optional (char '+' *> text)
+          where text = many1 $ letter <|> digit
 
 main :: IO ()
 main = interact challenge183
