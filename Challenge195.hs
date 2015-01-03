@@ -1,5 +1,6 @@
 {-|
-[2014-12-31] Challenge #195 [Intermediate] Math Dice
+* [2014-12-31] Challenge #195 [Intermediate] Math Dice
+
 http://www.reddit.com/r/dailyprogrammer/comments/2qxrtk/20141231_challenge_195_intermediate_math_dice/
 
 This solution makes heavy use of applicative []'s for nondeterminism.
