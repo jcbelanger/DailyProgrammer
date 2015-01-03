@@ -1,7 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 
-module Challenge183 where
+{-|
+* [10/06/2014] Challenge #183 [Easy] Semantic Version Sort
+http://www.reddit.com/r/dailyprogrammer/comments/2igfj9/10062014_challenge_183_easy_semantic_version_sort/
+
+This solution makes use of applicative parsing and monoids for sorting
+-}
 
 import Control.Applicative
 import Data.Attoparsec.Text
