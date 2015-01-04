@@ -3,13 +3,13 @@
 
 http://www.reddit.com/r/dailyprogrammer/comments/2qxrtk/20141231_challenge_195_intermediate_math_dice/
 
-This solution makes heavy use of applicative []'s for nondeterminism.
+This solution makes heavy use of applicative []'s for non-determinism.
 -}
-
 
 import Control.Applicative
 import Control.Arrow
 import Control.Monad
+import Data.List
 import Data.Maybe
 import System.Random
 
@@ -17,17 +17,19 @@ fnMap = zip
     [(+), (-)]
     ["+", "-"]
 
-subsets :: [a] -> [[a]]
-subsets = filterM $ const [True, False]
-
 calcResults :: [Int] -> [Int]
 calcResults (x:xs) = foldM (\a b -> fst <$> fnMap <*> [a] <*> [b]) x xs
 
 showResults :: [Int] -> [String]
-showResults list = foldM (\a b -> showStep <$> fnMap <*> [a] <*> [b]) x xs
-    where showStep f a b = unwords [a, snd f, b]
-          x:xs = show <$> list
-          
+showResults (x:xs) = foldM (\a b -> showStep <$> fnMap <*> [a] <*> [b]) (show x) xs
+    where showStep f a b = unwords [a, snd f, show b]
+    
+solutions target nums = [text ++ " = " ++ target
+    | subset <- subsequences nums
+    , not (null subset)
+    , (result, text) <- zip (calcResults subset) (showResults subset)
+    , result == target ]
+
 parseDie :: String -> (Int, Int)
 parseDie = (read *** read . tail) . break (== 'd')
 
@@ -35,9 +37,16 @@ main = do
     [(n1, x1), (n2, x2)] <- fmap parseDie . words <$> getLine
     (target, g) <- randomR (1, x1) <$> getStdGen
     let nums = take n2 $ randomRs (1, x2) g
+    let answers = solutions target nums
     putStrLn $ show target ++ ", " ++ unwords (show <$> nums)
-    putStrLn $ maybe "No Solution" id $ listToMaybe [text ++ " = " ++ show target 
-        | subset <- subsets nums
-        , not (null subset)
-        , (result, text) <- zip (calcResults subset) (showResults subset)
-        , result == target ]
+    putStrLn $ fromMaybe "No Solution" (listToMaybe answers)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
