@@ -25,10 +25,12 @@ showResults list = foldM (\a b -> showStep <$> fnMap <*> [a] <*> [b]) x xs
     where showStep f a b = unwords [a, snd f, b]
           x:xs = show <$> list
     
-solutions target nums = [text ++ " = " ++ show target
-    | subset <- subsequences nums
-    , not (null subset)
-    , (result, text) <- zip (calcResults subset) (showResults subset)
+solutions target nums = [ text ++ " = " ++ show target
+    | attempt <- nub [ perm |
+        seq <- subsequences nums,
+        perm <- permutations seq ]
+    , not (null attempt)
+    , (result, text) <- zip (calcResults attempt) (showResults attempt)
     , result == target ]
 
 parseDie :: String -> (Int, Int)
