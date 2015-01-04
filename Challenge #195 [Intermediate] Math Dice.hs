@@ -14,8 +14,8 @@ import Data.Maybe
 import System.Random
 
 fnMap = zip
-    [(+), (-)]
-    ["+", "-"]
+    [(+), (-), (*), div, (^)]
+    ["+", "-", "*", "/", "^"]
 
 calcResults :: [Int] -> [Int]
 calcResults (x:xs) = foldM (\a b -> fst <$> fnMap <*> [a] <*> [b]) x xs
