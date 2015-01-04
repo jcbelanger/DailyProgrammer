@@ -3,7 +3,7 @@
 
 http://www.reddit.com/r/dailyprogrammer/comments/2qxrtk/20141231_challenge_195_intermediate_math_dice/
 
-This solution makes heavy use of applicative []'s for non-determinism.
+This solution makes use of applicative []'s for non-determinism.
 -}
 
 import Control.Applicative
@@ -21,10 +21,11 @@ calcResults :: [Int] -> [Int]
 calcResults (x:xs) = foldM (\a b -> fst <$> fnMap <*> [a] <*> [b]) x xs
 
 showResults :: [Int] -> [String]
-showResults (x:xs) = foldM (\a b -> showStep <$> fnMap <*> [a] <*> [b]) (show x) xs
-    where showStep f a b = unwords [a, snd f, show b]
+showResults list = foldM (\a b -> showStep <$> fnMap <*> [a] <*> [b]) x xs
+    where showStep f a b = unwords [a, snd f, b]
+          x:xs = show <$> list
     
-solutions target nums = [text ++ " = " ++ target
+solutions target nums = [text ++ " = " ++ show target
     | subset <- subsequences nums
     , not (null subset)
     , (result, text) <- zip (calcResults subset) (showResults subset)
@@ -40,13 +41,3 @@ main = do
     let answers = solutions target nums
     putStrLn $ show target ++ ", " ++ unwords (show <$> nums)
     putStrLn $ fromMaybe "No Solution" (listToMaybe answers)
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
