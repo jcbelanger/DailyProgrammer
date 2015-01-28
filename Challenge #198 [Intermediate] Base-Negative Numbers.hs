@@ -37,25 +37,26 @@ Try and do both the main challenge and extension without looking for the convers
 -}
 
 import Data.Char
+import Data.Complex
 
 toBase10 base ('-':num) = -(toBase10 base num)
 toBase10 base num = sum $ zipWith (*) powers (reverse digits)
     where powers = map (base^) [0..]
-          digits = map digitToInt num
+          digits = map (fromIntegral . digitToInt) num
 
-quotRem' a b = let (a', b') = quotRem a b
-               in  if b' < 0
-                   then (a' + 1, b' + (abs b))
-                   else (a', b')
-
-fromBase10 base num = sign ++ map intToDigit digits
-    where step (q, r) = quotRem' q base
+fromBase10 base num = sign ++ concatMap show digits
+    where sign = if num < 0 then "-" else ""
           steps = takeWhile (not . isDone) $ iterate step (abs num, 0)
+          step (q, r) = quotRem' q base
           isDone (q, r) = q==0 && r==0
           digits = reverse . map snd . drop 1 $ steps
-          sign = if num < 0 then "-" else ""
 
-main = interact $ \input -> let [n, num] = words input
-                                base = read n
+quotRem' a b = let (x, y) = quotRem a b
+               in if y < 0
+                  then (x + 1, y + (abs b))
+                  else (x, y)
+
+main = interact $ \input -> let [b, num] = words input
+                                base = read b
                                 num10 = toBase10 base num
-                            in  fromBase10 (-base) num10
+                            in fromBase10 (-base) num10
