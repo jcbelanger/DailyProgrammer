@@ -49,7 +49,7 @@ fromBase10 base num = sign ++ concatMap show digits
           steps = takeWhile (not . isDone) $ iterate step (abs num, 0)
           step (q, r) = quotRem' q base
           isDone (q, r) = q==0 && r==0
-          digits = reverse . map snd . drop 1 $ steps
+          digits = reverse . map snd . tail $ steps
 
 quotRem' a b = let (x, y) = quotRem a b
                in if y < 0
