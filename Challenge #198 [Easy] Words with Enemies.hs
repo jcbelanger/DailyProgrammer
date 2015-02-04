@@ -40,7 +40,7 @@ import Data.List
 import Data.Ord
 import Data.Char
 
-main = interact $ \input -> let [left, right] = words (map toLower input)
+main = interact $ \input -> let [left, right] = words input
                                 lRemain = left \\ right
                                 rRemain = right \\ left
                                 winner = case comparing length lRemain rRemain of
