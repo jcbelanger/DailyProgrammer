@@ -38,7 +38,6 @@ Challenge inputs:
 
 import Data.List
 import Data.Ord
-import Data.Char
 
 main = interact $ \input -> let [left, right] = words input
                                 (lRemain, rRemain) = (left \\ right, right \\ left)
