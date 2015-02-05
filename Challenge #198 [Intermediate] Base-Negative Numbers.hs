@@ -51,7 +51,7 @@ fromBase10 base num = sign ++ concatMap show digits
           isDone (q, r) = q==0 && r==0
           digits = reverse . map snd . tail $ steps
 
---Most language's modulus don't round toward zero with negative numbers.
+--Need quotRem to round toward zero with negative numbers.
 quotRem' a b = let (x, y) = quotRem a b
                in if y < 0
                   then (x + 1, y + (abs b))
