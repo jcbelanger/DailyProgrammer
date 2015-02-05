@@ -41,8 +41,7 @@ import Data.Ord
 import Data.Char
 
 main = interact $ \input -> let [left, right] = words input
-                                lRemain = left \\ right
-                                rRemain = right \\ left
+                                (lRemain, rRemain) = (left \\ right, right \\ left)
                                 winner = case comparing length lRemain rRemain of
                                     EQ -> "Tie"
                                     LT -> "Right Wins"
