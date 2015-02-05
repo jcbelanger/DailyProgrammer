@@ -37,7 +37,7 @@ Try and do both the main challenge and extension without looking for the convers
 -}
 
 import Data.Char
-import Data.Complex
+import Data.Complex --Extended Challenge: Imaginary numbers from Data.Complex work for toBase10.  Haven't figured out imaginary bases for fromBase10 yet.
 
 toBase10 base ('-':num) = -(toBase10 base num)
 toBase10 base num = sum $ zipWith (*) powers (reverse digits)
