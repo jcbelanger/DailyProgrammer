@@ -38,6 +38,7 @@ Challenge inputs:
 
 import Data.List
 import Data.Ord
+import Text.Printf
 
 main = interact $ \input -> let [left, right] = words input
                                 (lRemain, rRemain) = (left \\ right, right \\ left)
@@ -45,5 +46,5 @@ main = interact $ \input -> let [left, right] = words input
                                     EQ -> "Tie"
                                     LT -> "Right Wins"
                                     GT -> "Left Wins" 
-                            in unwords ["Left:", lRemain, "Right:", rRemain, winner]
+                            in printf "Left: %s Right: %s Winner: %s" lRemain rRemain winner
                    
