@@ -64,3 +64,6 @@ toBase10 = sum . zipWith (*) powers . digits
           powers = map (2^) [0..]
 
 main = interact $ map (chr . toBase10) . chunksOf 8
+
+
+main2 = interact $ map (chr . sum . zipWith (\a b -> 2^a * digitToInt b) [7,6..]) . chunksOf 8
