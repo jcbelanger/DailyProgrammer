@@ -29,7 +29,6 @@ import Data.List
 import Data.Maybe
 import Data.Monoid
 import Data.Ord
-import Control.Applicative
 
 type Point = (Double, Double)
 
