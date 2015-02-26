@@ -42,6 +42,9 @@ grahamScan points = let bottomLeft = minimumBy (comparing snd <> comparing fst) 
                                                              else next:prev:rest
                     in  foldl' takeLeftTurns [minAngle, bottomLeft] byAngles
 
+minConvexHull :: [Point] -> [Point]
+minConvexHull = grahamScan . grahamScan
+
 xAxisAngle :: Point -> Point -> Double
 xAxisAngle (x1, y1) (x2, y2) = atan2 (y2 - y1) (x2 - x1)
 
