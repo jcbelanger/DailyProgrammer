@@ -52,10 +52,10 @@ isLeftTurn :: Point -> Point -> Point -> Bool
 isLeftTurn (x1, y1) (x2, y2) (x3, y3) = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1) > 0
                
 parsePoint :: String -> Point
-parsePoint input = let (x, ',' : y) = break (==',') input in  (read x, read y)
+parsePoint input = let (x, ',' : y) = break (==',') input in (read x, read y)
 
 challenge :: String -> String
-challenge input = let points = fmap parsePoint . tail . lines $ input
+challenge input = let points = map parsePoint . tail . lines $ input
                       pointMap = zip points ['A'..]
                       hull = grahamScan points
                   in  catMaybes . map (`lookup` pointMap) $ hull
