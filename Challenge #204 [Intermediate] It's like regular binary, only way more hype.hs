@@ -76,9 +76,10 @@ Have your program generate all the hyperbinary representations of that number, a
 
 import Data.Char
 
+step []     0 = [[0]]
 step digits 0 = [digits]
 step digits n = do
   d <- if odd n then [1] else [0,2]
   step (intToDigit d : digits) ((n - d) `div` 2)
-  
+
 main = interact $ unlines . step "" . read
