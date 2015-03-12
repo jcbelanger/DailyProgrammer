@@ -94,6 +94,7 @@ Below is a second implementation of the same algorithm with minor optimizations 
 import Control.Monad.Par
 import Control.DeepSeq
 
+--Not real solution! just an unoptimized example of the parallel impl.
 challengeNaive :: Int -> Int -> [Int]
 challengeNaive size target = head [ reverse chain
                                   | chain <- chains
@@ -105,22 +106,30 @@ chains = [1] : [ a+b:chain
                , a <- chain
                , b <- chain ]
                
+
 challenge :: Int -> Int -> [Int]
-challenge size target = head $ parsearch maxdepth finished refine emptysoln
+challenge endSize endTotal = head $ parsearch maxdepth finished refine emptysoln
     where
-        maxdepth = size `div` 2
-        finished (count, total, chain) | count == size && total == target
-                                           = Just (reverse chain)
-                                       | otherwise
-                                           = Nothing
-        refine (count, total, chain) = [ (count', total', a+b:chain)
-                                       | a <- chain
-                                       , b <- chain
-                                       , let total' = total+a+b
-                                       , let count' = count+1
-                                       , total' <= target
-                                       , count' <= size ]
-        emptysoln = (0, 1, [1])
+        maxdepth = floor $ logBase 2 (fromIntegral endSize)
+        finished (size, total, chainMap)
+            | size == endSize && total == endTotal
+                = Just $ concatMap (\(num, count) -> replicate count num) (Map.toAscList chainMap)
+            | otherwise
+                = Nothing
+        refine (size, total, chainMap) 
+            = nubBy isEqual
+              [ (newSize, newTotal, newChainMap)
+              | let chain = Map.keys chainMap
+              , a <- chain
+              , b <- chain
+              , let new = a + b
+              , let newSize = size + 1
+              , let newTotal = total + new
+              , let newChainMap = Map.insertWith' (+) new 1 chainMap
+              , newSize <= endSize && newTotal <= endTotal ]
+        emptysoln = (0, 1, Map.singleton 1 1)
+        isEqual (s1, t1, c1) (s2, t2, c2) = s1 == s2 && t1 == t2 && (Map.keys c1) == (Map.keys c2)
+        
 
 parsearch :: NFData solution
       => Int                             -- depth
