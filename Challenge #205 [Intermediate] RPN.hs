@@ -76,10 +76,13 @@ factorP =  Mul <$> termP <* (charPad '*' <|> charPad 'x') <*> factorP
 
 termP :: Parser Exp
 termP =  charPad '(' *> expP <* charPad ')'
-     <|> Number <$> double
+     <|> Number <$> pad double
 
 charPad :: Char -> Parser Char
-charPad c = skipSpace *> char c <* skipSpace
+charPad = pad . char
+
+pad :: Parser a -> Parser a
+pad p = skipSpace *> p <* skipSpace
 
 main = TIO.interact $ \input ->
     case parseOnly (expP <* endOfInput) input of
