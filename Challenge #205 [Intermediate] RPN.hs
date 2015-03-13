@@ -50,45 +50,32 @@ data Exp
     | Sub Exp Exp
     | Mul Exp Exp
     | Div Exp Exp
-
-instance Show Exp where
-    show (Number n) = show n
-    show (Add a b)  = unwords [show a, show b, "+"]
-    show (Sub a b)  = unwords [show a, show b, "-"]
-    show (Mul a b)  = unwords [show a, show b, "*"]
-    show (Div a b)  = unwords [show a, show b, "/"]
+    
+rpn (Number n) = show n
+rpn (Add a b)  = unwords [rpn a, rpn b, "+"]
+rpn (Sub a b)  = unwords [rpn a, rpn b, "-"]
+rpn (Mul a b)  = unwords [rpn a, rpn b, "*"]
+rpn (Div a b)  = unwords [rpn a, rpn b, "/"]
 
 eval (Number n) = n
 eval (Add a b)  = eval a + eval b
 eval (Sub a b)  = eval a - eval b
 eval (Mul a b)  = eval a * eval b
 eval (Div a b)  = eval a / eval b
-    
-expressionP = Add
-        <$> factorP
-        <*  char '+'
-        <*> expressionP
-    <|> Sub
-        <$> factorP
-        <*  char '-'
-        <*> expressionP
+
+expP =  Add <$> factorP <*  char '+' <*> expP
+    <|> Sub <$> factorP <*  char '-' <*> expP
     <|> factorP
 
-factorP = Mul
-        <$> termP
-        <*  (char '*' <|> char 'x')
-        <*> factorP
-    <|> Div
-        <$> termP
-        <*  char '/'
-        <*> factorP
-    <|> termP
+factorP =  Mul <$> termP <* (char '*' <|> char 'x') <*> factorP
+       <|> Div <$> termP <*  char '/' *> factorP
+       <|> termP
 
-termP = skipSpace *> char '(' *> expressionP <* char ')' <* skipSpace
-    <|> numP
+termP =  skipSpace *> char '(' *> expP <* char ')' <* skipSpace
+     <|> skipSpace *> (Number <$> double) <* skipSpace
 
-numP = skipSpace *> (Number <$> double) <* skipSpace
+main = TIO.interact $ \input ->
+    case parseOnly (expP <* endOfInput) input of
+        Right exp -> T.pack $ rpn exp ++ " = " ++ show (eval exp)
+        _         -> "Failed to parse"
 
-main = TIO.interact $ \input -> case parseOnly (expressionP <* endOfInput) input of
-    Right exp -> T.pack $ show exp ++ " = " ++ show (eval exp)
-    _         -> "Failed to parse"
