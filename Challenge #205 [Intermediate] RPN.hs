@@ -36,7 +36,6 @@ Additional Challenge:
 
 Since you already got RPN - solve the equations.
 -}
-
 {-# LANGUAGE OverloadedStrings #-}
 
 import Data.Attoparsec.Text
@@ -50,32 +49,39 @@ data Exp
     | Sub Exp Exp
     | Mul Exp Exp
     | Div Exp Exp
-    
+
+rpn :: Exp -> String
 rpn (Number n) = show n
 rpn (Add a b)  = unwords [rpn a, rpn b, "+"]
 rpn (Sub a b)  = unwords [rpn a, rpn b, "-"]
 rpn (Mul a b)  = unwords [rpn a, rpn b, "*"]
 rpn (Div a b)  = unwords [rpn a, rpn b, "/"]
 
+eval :: Exp -> Double
 eval (Number n) = n
 eval (Add a b)  = eval a + eval b
 eval (Sub a b)  = eval a - eval b
 eval (Mul a b)  = eval a * eval b
 eval (Div a b)  = eval a / eval b
 
-expP =  Add <$> factorP <* char '+' <*> expP
-    <|> Sub <$> factorP <* char '-' <*> expP
+expP :: Parser Exp
+expP =  Add <$> factorP <*  charPad '+' <*> expP
+    <|> Sub <$> factorP <*  charPad '-' <*> expP
     <|> factorP
 
-factorP =  Mul <$> termP <* (char '*' <|> char 'x') <*> factorP
-       <|> Div <$> termP <* char '/' *> factorP
+factorP :: Parser Exp
+factorP =  Mul <$> termP <* (charPad '*' <|> charPad 'x') <*> factorP
+       <|> Div <$> termP <*  charPad '/' <*> factorP
        <|> termP
 
-termP =  skipSpace *> char '(' *> expP <* char ')' <* skipSpace
-     <|> skipSpace *> (Number <$> double) <* skipSpace
+termP :: Parser Exp
+termP =  charPad '(' *> expP <* charPad ')'
+     <|> Number <$> double
+
+charPad :: Parser Char
+charPad c = skipSpace *> char c <* skipSpace
 
 main = TIO.interact $ \input ->
     case parseOnly (expP <* endOfInput) input of
         Right exp -> T.pack $ rpn exp ++ " = " ++ show (eval exp)
         _         -> "Failed to parse"
-
