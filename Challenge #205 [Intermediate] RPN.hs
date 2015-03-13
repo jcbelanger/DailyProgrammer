@@ -78,7 +78,7 @@ termP :: Parser Exp
 termP =  charPad '(' *> expP <* charPad ')'
      <|> Number <$> double
 
-charPad :: Parser Char
+charPad :: Char -> Parser Char
 charPad c = skipSpace *> char c <* skipSpace
 
 main = TIO.interact $ \input ->
