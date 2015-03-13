@@ -63,12 +63,12 @@ eval (Sub a b)  = eval a - eval b
 eval (Mul a b)  = eval a * eval b
 eval (Div a b)  = eval a / eval b
 
-expP =  Add <$> factorP <*  char '+' <*> expP
-    <|> Sub <$> factorP <*  char '-' <*> expP
+expP =  Add <$> factorP <* char '+' <*> expP
+    <|> Sub <$> factorP <* char '-' <*> expP
     <|> factorP
 
 factorP =  Mul <$> termP <* (char '*' <|> char 'x') <*> factorP
-       <|> Div <$> termP <*  char '/' *> factorP
+       <|> Div <$> termP <* char '/' *> factorP
        <|> termP
 
 termP =  skipSpace *> char '(' *> expP <* char ')' <* skipSpace
