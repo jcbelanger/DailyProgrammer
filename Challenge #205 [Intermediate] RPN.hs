@@ -64,15 +64,40 @@ eval (Sub a b)  = eval a - eval b
 eval (Mul a b)  = eval a * eval b
 eval (Div a b)  = eval a / eval b
 
+{- LL grammar used to support left associativity:
+
+<exp> -> <factor> <expTail>
+
+<expTail> -> - <term> <expTail>
+           | + <term> <expTail>
+           | <eof>
+
+<factor> -> <term> <factorTail>
+
+<factorTail> -> * <term> <factorTail>
+              | / <term> <factorTail>
+              | <eof>
+
+<term> -> ( <exp> )
+        | <number>
+        
+-}
+        
 expP :: Parser Exp
-expP =  Add <$> factorP <*  charPad '+' <*> expP
-    <|> Sub <$> factorP <*  charPad '-' <*> expP
-    <|> factorP
+expP = headForm factorP expTailP
+
+expTailP :: Parser (Maybe (Exp -> Exp))
+expTailP =  charPad '+' *> tailForm Add factorP expTailP
+        <|> charPad '-' *> tailForm Sub factorP expTailP
+        <|> pure Nothing
 
 factorP :: Parser Exp
-factorP =  Mul <$> termP <* (charPad '*' <|> charPad 'x') <*> factorP
-       <|> Div <$> termP <*  charPad '/' <*> factorP
-       <|> termP
+factorP = headForm termP factorTailP
+
+factorTailP :: Parser (Maybe (Exp -> Exp))
+factorTailP =   charPad '/' *> tailForm Div termP factorTailP
+           <|> (charPad '*' <|> charPad 'x') *> tailForm Mul termP factorTailP
+           <|> pure Nothing
 
 termP :: Parser Exp
 termP =  charPad '(' *> expP <* charPad ')'
@@ -83,6 +108,21 @@ charPad = pad . char
 
 pad :: Parser a -> Parser a
 pad p = skipSpace *> p <* skipSpace
+
+headForm headP tailP = do
+    left <- headP
+    mTail <- tailP
+    return $ case mTail of
+        Just tail -> tail left
+        Nothing -> left
+
+tailForm f rightP tailP = do
+    right <- rightP
+    mTail <- tailP
+    let head x = f x right
+    return . Just $ case mTail of
+        Just tail -> tail . head
+        Nothing   -> head
 
 main = TIO.interact $ \input ->
     case parseOnly (expP <* endOfInput) input of
