@@ -36,6 +36,7 @@ Additional Challenge:
 
 Since you already got RPN - solve the equations.
 -}
+
 {-# LANGUAGE OverloadedStrings #-}
 
 import Data.Attoparsec.Text
@@ -64,67 +65,21 @@ eval (Sub a b)  = eval a - eval b
 eval (Mul a b)  = eval a * eval b
 eval (Div a b)  = eval a / eval b
 
-{- LL grammar used to support left associativity:
+expr :: Parser Exp
+expr = chainl1 term (Add <$ char '+' <|> Sub <$ char '-')
 
-<exp> -> <factor> <expTail>
+term :: Parser Exp
+term = chainl1 fact (Mul <$ (char '*' <|> char 'x') <|> Div <$ char '/')
 
-<expTail> -> - <term> <expTail>
-           | + <term> <expTail>
-           | <eof>
+fact :: Parser Exp
+fact = Number <$> double <|> char '(' *> expr <* char ')'
 
-<factor> -> <term> <factorTail>
-
-<factorTail> -> * <term> <factorTail>
-              | / <term> <factorTail>
-              | <eof>
-
-<term> -> ( <exp> )
-        | <number>
-        
--}
-        
-expP :: Parser Exp
-expP = headForm factorP expTailP
-
-expTailP :: Parser (Maybe (Exp -> Exp))
-expTailP =  charPad '+' *> tailForm Add factorP expTailP
-        <|> charPad '-' *> tailForm Sub factorP expTailP
-        <|> pure Nothing
-
-factorP :: Parser Exp
-factorP = headForm termP factorTailP
-
-factorTailP :: Parser (Maybe (Exp -> Exp))
-factorTailP =   charPad '/' *> tailForm Div termP factorTailP
-           <|> (charPad '*' <|> charPad 'x') *> tailForm Mul termP factorTailP
-           <|> pure Nothing
-
-termP :: Parser Exp
-termP =  charPad '(' *> expP <* charPad ')'
-     <|> Number <$> pad double
-
-charPad :: Char -> Parser Char
-charPad = pad . char
-
-pad :: Parser a -> Parser a
-pad p = skipSpace *> p <* skipSpace
-
-headForm headP tailP = do
-    left <- headP
-    mTail <- tailP
-    return $ case mTail of
-        Just tail -> tail left
-        Nothing -> left
-
-tailForm f rightP tailP = do
-    right <- rightP
-    mTail <- tailP
-    let head x = f x right
-    return . Just $ case mTail of
-        Just tail -> tail . head
-        Nothing   -> head
+chainl1 :: Alternative m => m a -> m (a -> a -> a) -> m a
+chainl1 p opp = scan where
+    scan = flip id <$> p <*> rest
+    rest = (\f y g x -> g (f x y)) <$> opp <*> p <*> rest <|> pure id
 
 main = TIO.interact $ \input ->
-    case parseOnly (expP <* endOfInput) input of
+    case parseOnly (expr <* endOfInput) (T.filter (==' ') input) of
         Right exp -> T.pack $ rpn exp ++ " = " ++ show (eval exp)
         _         -> "Failed to parse"
