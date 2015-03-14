@@ -40,8 +40,8 @@ Since you already got RPN - solve the equations.
 {-# LANGUAGE OverloadedStrings #-}
 
 import Data.Attoparsec.Text
+import Data.Char
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 import Control.Applicative
 
 data Exp
@@ -50,6 +50,7 @@ data Exp
     | Sub Exp Exp
     | Mul Exp Exp
     | Div Exp Exp
+    deriving Show
 
 rpn :: Exp -> String
 rpn (Number n) = show n
@@ -79,7 +80,8 @@ chainl1 p opp = scan where
     scan = flip id <$> p <*> rest
     rest = (\f y g x -> g (f x y)) <$> opp <*> p <*> rest <|> pure id
 
-main = TIO.interact $ \input ->
-    case parseOnly (expr <* endOfInput) (T.filter (==' ') input) of
-        Right exp -> T.pack $ rpn exp ++ " = " ++ show (eval exp)
-        _         -> "Failed to parse"
+main = interact $ \input ->
+    let tokens = T.pack . filter (not . isSpace) $ input
+    in case parseOnly (expr <* endOfInput) tokens of
+        Right exp -> rpn exp ++ " = " ++ show (eval exp)
+        Left  err -> "Failed to parse: " ++ err
