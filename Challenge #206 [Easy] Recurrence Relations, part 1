@@ -127,4 +127,4 @@ parseFn (fn:val) = let n = read val
                        '+' -> (+ n)
                        '*' -> (* n)
                        '/' -> (/ n)
-                       '-' -> (`subtract` n)
+                       '-' -> subtract n
