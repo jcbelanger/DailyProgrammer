@@ -115,11 +115,11 @@ Term 10: 29524
 import Text.Printf  
 
 main = interact $ \input -> 
-    let [fnChain, start, endTerm] = lines input
-        fn = foldr1 (flip (.)) . map parseFn . words $ fnChain
-        sequence = (read start) : map fn sequence
-        showTerm = printf "Term %d: %.2f" :: Int -> Double -> String
-    in  unlines $ zipWith showTerm [0..read endTerm] sequence
+    let [fnChain, startTerm, numTerms] = lines input
+        fn = foldr (flip (.)) id . map parseFn . words $ fnChain
+        series = iterate fn (read startTerm)
+        showTerm = printf "Term %d: %f" :: Int -> Double -> String
+    in  unlines $ zipWith showTerm [0..read numTerms] series
 
 parseFn :: String -> Double -> Double
 parseFn (fn:val) = let n = read val
