@@ -94,9 +94,6 @@ search finished refine emptysoln = generate emptysoln
        | Just soln <- finished partial = [soln]
        | otherwise  = F.concat (fmap generate (refine partial))
 
-parAligns a b = withStrategy (parBuffer 64 rdeepseq) (toList $ seqAligns a b) 
-seqAligns a b = aligns a b False False
-
 aligns :: String -> String -> Bool -> Bool -> S.Seq (S.Seq (Char, Char))
 aligns []  []  _ _ = S.empty
 aligns [x] [y] _ _ = S.singleton $ S.singleton (x, y)
@@ -115,8 +112,11 @@ score (a,b) | a == b               = 2
             | a == ' ' || b == ' ' = 0
             | otherwise            = (-1)
 
+best :: String -> String -> (String, String)
+best a b = unzip . toList $ maximumBy (comparing $ F.sum . fmap score) (parAligns a b)
+    where parAligns a b = withStrategy (parBuffer 64 rdeepseq) (toList $ aligns a b False False) 
+
 main = interact $ \input ->
     let [a, b] = lines input
-        (bestA, bestB) = unzip . toList . maximumBy (comparing rating) $ parAligns a b
-        rating = getSum . foldMap (Sum . score)
+        (bestA, bestB) = best a b
     in unlines [bestA, bestB]
