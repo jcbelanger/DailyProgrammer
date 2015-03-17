@@ -117,6 +117,6 @@ score (a,b) | a == b               = 2
 
 main = interact $ \input ->
     let [a, b] = lines input
-        best = unzip . toList . maximumBy (comparing rating) $ parAligns a b
+        (bestA, bestB) = unzip . toList . maximumBy (comparing rating) $ parAligns a b
         rating = getSum . foldMap (Sum . score)
-    in unlines [fst best, snd best]
+    in unlines [bestA, bestB]
