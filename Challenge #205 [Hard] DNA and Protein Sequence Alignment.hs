@@ -102,9 +102,10 @@ aligns []  ys  _ _ = S.singleton $ S.fromList $ zip (repeat ' ') ys
 aligns (x:xs) (y:ys) xStart yStart = Prelude.foldr1 (><)
     [ (<|) <$> pure (x, y)      <*> aligns xs ys     True   True
     , (<|) <$> pure (blankX, y) <*> aligns (x:xs) ys xStart True
-    , (<|) <$> pure (x, blankY) <*> aligns xs (y:ys) True   yStart
-    ] where blankX = if xStart then '-' else ' '
-            blankY = if yStart then '-' else ' '
+    , (<|) <$> pure (x, blankY) <*> aligns xs (y:ys) True   yStart ]
+    where 
+      blankX = if xStart then '-' else ' '
+      blankY = if yStart then '-' else ' '
 
 score :: (Char, Char) -> Int
 score (a,b) | a == b               = 2
@@ -113,8 +114,11 @@ score (a,b) | a == b               = 2
             | otherwise            = (-1)
 
 best :: String -> String -> (String, String)
-best a b = unzip . toList $ maximumBy (comparing $ F.sum . fmap score) (parAligns a b)
-    where parAligns a b = withStrategy (parBuffer 64 rdeepseq) (toList $ aligns a b False False) 
+best a b = unzip . toList $ maximumBy (comparing rating) (parAligns a b)
+    where
+        parAligns a b = withStrategy (parBuffer 64 rdeepseq) (alignsStart a b)
+        rating = F.sum . fmap score
+        alignsStart a b = toList $ aligns a b False False
 
 main = interact $ \input ->
     let [a, b] = lines input
