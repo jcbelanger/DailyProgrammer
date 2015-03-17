@@ -113,12 +113,11 @@ aligns [x] [y] _ _ = S.singleton $ S.singleton (x, y)
 aligns xs  []  _ _ = S.singleton $ S.fromList $ zip xs (repeat ' ')
 aligns []  ys  _ _ = S.singleton $ S.fromList $ zip (repeat ' ') ys
 aligns (x:xs) (y:ys) xStart yStart = Prelude.foldr1 (><)
-    [ (<|) <$> pure (x, y)      <*> aligns xs ys     True   True
-    , (<|) <$> pure (blankX, y) <*> aligns (x:xs) ys xStart True
-    , (<|) <$> pure (x, blankY) <*> aligns xs (y:ys) True   yStart ]
+    [ (<|) <$> pure (x, y)            <*> aligns xs ys     True   True
+    , (<|) <$> pure (blank xStart, y) <*> aligns (x:xs) ys xStart True
+    , (<|) <$> pure (x, blank yStart) <*> aligns xs (y:ys) True   yStart ]
     where 
-      blankX = if xStart then '-' else ' '
-      blankY = if yStart then '-' else ' '
+        blank started = if started then '-' else ' '
 
 score :: (Char, Char) -> Int
 score (a,b) | a == b               = 2
@@ -130,13 +129,12 @@ best :: String -> String -> (String, String)
 best a b = unzip . toList $ maximumBy (comparing rating) (alignsStart a b)
     where
         rating = F.sum . fmap score
-        alignsStart a b = toList $ aligns a b False False
+        alignsStart a b = aligns a b False False
 
 main = interact $ \input ->
     let [a, b] = lines input
         (bestA, bestB) = best a b
     in unlines [bestA, bestB]
-
 
 {-
 --Needed for older versions of Data.Sequence
