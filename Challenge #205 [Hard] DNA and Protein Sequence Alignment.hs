@@ -49,19 +49,53 @@ Once you have a simple NW algorithm implemented, you can alter the cost matrices
 Have a cool challenge idea? Post it to /r/DailyProgrammer_Ideas!
 -}
 
-
 import Control.Applicative
-import Data.Ord
+import Control.DeepSeq
+import Control.Monad.Par
+import Control.Parallel.Strategies
+import Data.Foldable as F
 import Data.Monoid
-import Data.Foldable
+import Data.Ord
 import Data.Sequence ((><), (<|), (|>))
 import qualified Data.Sequence as S
 
+{-
 --Needed for older ghc/base
 instance Applicative S.Seq where
     pure = S.singleton
     fs <*> xs = foldl' add S.empty fs
         where add ys f = ys >< fmap f xs
+-}
+
+parsearch :: NFData solution
+      => Int                             -- depth
+      -> ( partial -> Maybe solution )   -- finished?
+      -> ( partial -> [ partial ] )      -- refine a solution
+      -> partial                         -- initial solution
+      -> [solution]
+parsearch maxdepth finished refine emptysoln
+  = runPar $ generate 0 emptysoln
+  where
+    generate d partial | d >= maxdepth
+       = return (search finished refine partial)
+    generate d partial
+       | Just soln <- finished partial = return [soln]
+       | otherwise  = do
+           solnss <- parMapM (generate (d+1)) (refine partial)
+           return (F.concat solnss)
+
+search :: ( partial -> Maybe solution )
+       -> ( partial -> [ partial ] )
+       -> partial
+       -> [solution]
+search finished refine emptysoln = generate emptysoln
+  where
+    generate partial
+       | Just soln <- finished partial = [soln]
+       | otherwise  = F.concat (fmap generate (refine partial))
+
+parAligns a b = withStrategy (parBuffer 64 rdeepseq) (toList $ seqAligns a b) 
+seqAligns a b = aligns a b False False
 
 aligns :: String -> String -> Bool -> Bool -> S.Seq (S.Seq (Char, Char))
 aligns []  []  _ _ = S.empty
