@@ -92,14 +92,21 @@ main = interact $ \input ->
         field = toIndexList field2d
         crops = map fst $ filter ((=='x').snd) field
         sprinklers = (,) <$> [0..row-1] <*> [0..col-1]
-    in show $ maximumBy (comparing $ watered radius crops) sprinklers
-
-toIndexList :: [[a]] -> [((Int, Int), a)]
-toIndexList = concatMap flatten . index . map index
-    where index = zip [0..]
-          flatten (i, row) = map (\(j, val) -> ((i,j),val)) row
+        best = maximumBy (comparing $ watered radius crops) sprinklers
+    in unlines $ update2d best 'O' field2d
 
 watered :: Int -> [(Int,Int)] -> (Int, Int) -> Int
 watered radius crops sprinkler@(sx,sy) = 
     length . filter ((<=radius).dist) . filter (/=sprinkler) $ crops
     where dist (cx,cy) = floor . sqrt . fromIntegral $ (sy-cy)^2 + (sx-cx)^2
+    
+toIndexList :: [[a]] -> [((Int, Int), a)]
+toIndexList = concatMap flatten . index . map index
+    where index = zip [0..]
+          flatten (i, row) = map (\(j, val) -> ((i,j),val)) row
+
+update :: Int -> a -> [a] -> [a]
+update index value = zipWith (\i element -> if i==index then value else element) [0..]
+    
+update2d :: (Int, Int) -> a -> [[a]] -> [[a]]
+update2d (x,y) value array = update x (update y value (array !! x)) array
