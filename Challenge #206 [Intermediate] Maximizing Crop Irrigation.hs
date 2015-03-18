@@ -93,17 +93,19 @@ main = interact $ \input ->
         crops = map fst $ filter ((=='x').snd) field
         sprinklers = (,) <$> [0..row-1] <*> [0..col-1]
         best = maximumBy (comparing $ watered radius crops) sprinklers
-    in  showField field col radius best
-    
+    in  showField field row col radius best
+
 watered :: Int -> [(Int,Int)] -> (Int, Int) -> Int
 watered radius crops sprinkler = 
     length . filter ((<=radius).(dist sprinkler)) . filter (/=sprinkler) $ crops
     
-showField field col radius sprinkler = unlines . chunks col $ map showSpace field
-    where showSpace (pos, c) | pos == sprinkler             = 'O'
-                             | c == 'x'                     = 'x'
-                             | dist pos sprinkler <= radius = '~'
-                             | otherwise                    = '.'
+showField field row col radius sprinkler = 
+    unlines . take row . chunks col $ map showSpace field
+    where
+        showSpace (pos, c) | pos == sprinkler             = 'O'
+                           | c == 'x'                     = 'x'
+                           | dist pos sprinkler <= radius = '~'
+                           | otherwise                    = '.'
 
 dist :: (Int, Int) -> (Int, Int) -> Int
 dist (x1,y1) (x2,y2) = floor . sqrt . fromIntegral $ (x1-x2)^2 + (y1-y2)^2
