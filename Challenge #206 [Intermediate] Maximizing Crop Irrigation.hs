@@ -93,7 +93,10 @@ main = interact $ \input ->
         crops = map fst $ filter ((=='x').snd) field
         sprinklers = (,) <$> [0..row-1] <*> [0..col-1]
         best = maximumBy (comparing $ watered radius crops) sprinklers
-    in  unlines ["Position: " ++show best, showField field row col radius best]
+        in  unlines [ "Position: " ++ show best
+                    , "Watered: " ++ (show $ watered radius crops best)
+                    , "Field:"
+                    , showField field row col radius best ]
 
 watered :: Int -> [(Int,Int)] -> (Int, Int) -> Int
 watered radius crops sprinkler = 
