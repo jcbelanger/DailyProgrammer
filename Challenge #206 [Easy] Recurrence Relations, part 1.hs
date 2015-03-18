@@ -112,19 +112,30 @@ Term 9: 9841
 Term 10: 29524
 -}
 
-import Text.Printf  
+import Text.Printf
 
 main = interact $ \input -> 
     let [fnChain, startTerm, numTerms] = lines input
-        fn = foldr (flip (.)) id . map parseFn . words $ fnChain
+        fn = parseChain2 fnChain
         series = iterate fn (read startTerm)
         showTerm = printf "Term %d: %f" :: Int -> Double -> String
     in  unlines $ zipWith showTerm [0..read numTerms] series
 
-parseFn :: String -> Double -> Double
-parseFn (fn:val) = let n = read val
-                   in case fn of
-                       '+' -> (+ n)
-                       '*' -> (* n)
-                       '/' -> (/ n)
-                       '-' -> subtract n
+parseChain1 :: String -> Double -> Double
+parseChain1 = foldr (flip (.)) id . map parseFn . words
+    where parseFn (fn:val) = let n = read val
+                             in case fn of
+                                 '+' -> (+ n)
+                                 '*' -> (* n)
+                                 '/' -> (/ n)
+                                 '-' -> subtract n
+
+parseChain2 :: String -> Double -> Double
+parseChain2 = eval . foldr step (1, 0) . words
+    where eval (m, b) = \x -> m*x + b 
+          step (fn:val) (m, b) = let n = read val
+                                 in case fn of
+                                     '+' -> (m, b+n)
+                                     '*' -> (m*n, b*n)
+                                     '/' -> (m/n, b/n)
+                                     '-' -> (m, b-n)
