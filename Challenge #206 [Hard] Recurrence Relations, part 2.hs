@@ -159,6 +159,7 @@ Reverse Polish notation
 Recurrence relation
 Declarative languages might be handy for this challenge!
 -}
+import Control.Applicative
 
 main = interact $ \input ->
     let (relation:rest) = lines input
@@ -174,20 +175,15 @@ parseDef input = let (n, ':' : val) = break (==':') input
 parseRelation :: [(Double, Double)] -> String -> Double -> Maybe Double
 parseRelation defs input =
     let [rawFn] = foldl parseFn [] (words input)
-        parseFn (r:l:stack) "+"     = (apply (+) l r):stack
-        parseFn (r:l:stack) "-"     = (apply (-) l r):stack
-        parseFn (r:l:stack) "*"     = (apply (*) l r):stack
-        parseFn (r:l:stack) "/"     = (apply (/) l r):stack
+        parseFn (r:l:stack) "+"     = (liftA2 (+) <$> l <*> r):stack
+        parseFn (r:l:stack) "-"     = (liftA2 (-) <$> l <*> r):stack
+        parseFn (r:l:stack) "*"     = (liftA2 (*) <$> l <*> r):stack
+        parseFn (r:l:stack) "/"     = (liftA2 (/) <$> l <*> r):stack
         parseFn stack       ('(':n) = (fn.(subtract n')):stack where n' = read (init n)
-        parseFn stack       n       = (const . Just . read $ n):stack
+        parseFn stack       n       = (const . Just $ read n):stack
         fn n = if n < 0
                then Nothing
                else case lookup n defs of
                    Just val -> Just val
                    Nothing  -> rawFn n
     in fn
-
-apply f fa fb = \x -> do
-    a <- fa x
-    b <- fb x
-    return $ f a b
