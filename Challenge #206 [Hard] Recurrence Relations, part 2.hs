@@ -196,7 +196,7 @@ data Tree a = Tree a (Tree a) (Tree a) deriving Show
 instance Functor Tree where
     fmap f (Tree val left right) = Tree (f val) (fmap f left) (fmap f right)
 
-naturals :: Tree Integer
+naturals :: Integral a => Tree a
 naturals = Tree 0 (fmap ((+1).(*2)) naturals) (fmap ((*2).(+1)) naturals)
 
 (!!!) :: Integral a => Tree b -> a -> b
