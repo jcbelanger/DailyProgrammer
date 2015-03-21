@@ -159,6 +159,7 @@ Reverse Polish notation
 Recurrence relation
 Declarative languages might be handy for this challenge!
 -}
+
 import Control.Applicative
 import Data.Function
 import Data.Ratio
@@ -168,26 +169,41 @@ main = interact $ \input ->
         defs = map parseDef (init rest)
         n = read (last rest) :: Int
         fn = parseRelation defs relation
-    in unlines [(show i)++": "++(show val) | (i, Just val) <- zip [0..n] (map fn [0..])]
+    in  unlines [(show i)++": "++(show val) | (i, Just val) <- zip [0..n] (map fn [0..])]
 
 parseDef :: String -> (Integer, Rational)
 parseDef input = let (n, ':' : val) = break (==':') input
                  in  (read n, (read val) % 1)
 
 parseRelation :: [(Integer, Rational)] -> String -> Integer -> Maybe Rational
-parseRelation defs input = fix $ memoize . \fn n ->
-   if n < 0
-   then Nothing
-   else case lookup n defs of
-       Just val -> Just val
-       Nothing  -> rawFn n where
-           [rawFn] = foldl parseFn [] (words input)
-           parseFn (r:l:stack) "+"     = (liftA2 (+) <$> l <*> r):stack
-           parseFn (r:l:stack) "-"     = (liftA2 (-) <$> l <*> r):stack
-           parseFn (r:l:stack) "*"     = (liftA2 (*) <$> l <*> r):stack
-           parseFn (r:l:stack) "/"     = (liftA2 (/) <$> l <*> r):stack
-           parseFn stack       ('(':d) = (fn.(subtract d')):stack where d' = read (init d)
-           parseFn stack       n       = (const . Just $ read n):stack
+parseRelation defs input = fix $ memoizeTree . \fn n ->
+    let [parsedFn] = foldl parseFn [] (words input)
+        parseFn (r:l:stack) "+"     = (liftA2 (+) <$> l <*> r):stack
+        parseFn (r:l:stack) "-"     = (liftA2 (-) <$> l <*> r):stack
+        parseFn (r:l:stack) "*"     = (liftA2 (*) <$> l <*> r):stack
+        parseFn (r:l:stack) "/"     = (liftA2 (/) <$> l <*> r):stack
+        parseFn stack       ('(':d) = (fn.(subtract d')):stack where d' = read (init d)
+        parseFn stack       n       = (const . Just $ read n):stack
+   in  if n < 0
+       then Nothing
+       else case lookup n defs of
+            Just val -> Just val
+            Nothing  -> parsedFn n
 
-memoize :: (Integer -> a) -> (Integer -> a)
-memoize f = (map f [0..] !!) . fromInteger
+memoizeTree f = ((fmap f naturals) !!!)
+
+data Tree a = Tree a (Tree a) (Tree a) deriving Show
+instance Functor Tree where
+    fmap f (Tree val left right) = Tree (f val) (fmap f left) (fmap f right)
+
+naturals :: Tree Integer
+naturals = Tree 0 (fmap ((+1).(*2)) naturals) (fmap ((*2).(+1)) naturals)
+
+(!!!) :: Integral a => Tree b -> a -> b
+Tree val left right !!! 0 = val 
+Tree val left right !!! n =
+    if odd n
+    then left !!! top
+    else right !!! (top - 1)
+        where top = n `div` 2
+
