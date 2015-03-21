@@ -160,6 +160,8 @@ Recurrence relation
 Declarative languages might be handy for this challenge!
 -}
 import Control.Applicative
+import Data.Function
+import Data.Ratio
 
 main = interact $ \input ->
     let (relation:rest) = lines input
@@ -168,22 +170,24 @@ main = interact $ \input ->
         fn = parseRelation defs relation
     in unlines [(show i)++": "++(show val) | (i, Just val) <- zip [0..n] (map fn [0..])]
 
-parseDef :: String -> (Double, Double)
+parseDef :: String -> (Integer, Rational)
 parseDef input = let (n, ':' : val) = break (==':') input
-                 in  (read n, read val)
+                 in  (read n, (read val) % 1)
 
-parseRelation :: [(Double, Double)] -> String -> Double -> Maybe Double
-parseRelation defs input =
-    let [rawFn] = foldl parseFn [] (words input)
-        parseFn (r:l:stack) "+"     = (liftA2 (+) <$> l <*> r):stack
-        parseFn (r:l:stack) "-"     = (liftA2 (-) <$> l <*> r):stack
-        parseFn (r:l:stack) "*"     = (liftA2 (*) <$> l <*> r):stack
-        parseFn (r:l:stack) "/"     = (liftA2 (/) <$> l <*> r):stack
-        parseFn stack       ('(':n) = (fn.(subtract n')):stack where n' = read (init n)
-        parseFn stack       n       = (const . Just $ read n):stack
-        fn n = if n < 0
-               then Nothing
-               else case lookup n defs of
-                   Just val -> Just val
-                   Nothing  -> rawFn n
-    in fn
+parseRelation :: [(Integer, Rational)] -> String -> Integer -> Maybe Rational
+parseRelation defs input = fix $ memoize . \fn n ->
+   if n < 0
+   then Nothing
+   else case lookup n defs of
+       Just val -> Just val
+       Nothing  -> rawFn n where
+           [rawFn] = foldl parseFn [] (words input)
+           parseFn (r:l:stack) "+"     = (liftA2 (+) <$> l <*> r):stack
+           parseFn (r:l:stack) "-"     = (liftA2 (-) <$> l <*> r):stack
+           parseFn (r:l:stack) "*"     = (liftA2 (*) <$> l <*> r):stack
+           parseFn (r:l:stack) "/"     = (liftA2 (/) <$> l <*> r):stack
+           parseFn stack       ('(':d) = (fn.(subtract d')):stack where d' = read (init d)
+           parseFn stack       n       = (const . Just $ read n):stack
+
+memoize :: (Integer -> a) -> (Integer -> a)
+memoize f = (map f [0..] !!) . fromInteger
