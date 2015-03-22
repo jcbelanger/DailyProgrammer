@@ -112,30 +112,35 @@ Term 9: 9841
 Term 10: 29524
 -}
 
+{-# LANGUAGE BangPatterns #-}
+
 import Text.Printf
 
 main = interact $ \input -> 
-    let [fnChain, startTerm, numTerms] = lines input
-        fn = parseChain2 fnChain
-        series = iterate fn (read startTerm)
-        showTerm = printf "Term %d: %f" :: Int -> Double -> String
-    in  unlines $ zipWith showTerm [0..read numTerms] series
+    let [fnLine, startLine, endLine] = lines input
+        fn = parseFn2 fnLine
+        start = read startLine :: Double
+        end = read endLine :: Int
+    in  unlines $ zipWith (printf "Term %d: %f") [0..end] (iterate fn start)
 
-parseChain1 :: String -> Double -> Double
-parseChain1 = foldr (flip (.)) id . map parseFn . words
-    where parseFn (fn:val) = let n = read val
-                             in case fn of
-                                 '+' -> (+ n)
-                                 '*' -> (* n)
-                                 '/' -> (/ n)
-                                 '-' -> subtract n
+parseFn1 :: String -> Double -> Double
+parseFn1 = foldr chainFn id . words
+    where chainFn (op:val) fns = 
+              let n = read val
+                  fn = case op of
+                      '+' -> (+)
+                      '*' -> (*)
+                      '/' -> (/)
+                      '-' -> (-)
+              in fns . (flip fn n)
 
-parseChain2 :: String -> Double -> Double
-parseChain2 = eval . foldr step (1, 0) . words
+parseFn2 :: String -> Double -> Double
+parseFn2 = eval . foldr step (1, 0) . words
     where eval (m, b) = \x -> m*x + b 
-          step (fn:val) (m, b) = let n = read val
-                                 in case fn of
-                                     '+' -> (m, b+n)
-                                     '*' -> (m*n, b*n)
-                                     '/' -> (m/n, b/n)
-                                     '-' -> (m, b-n)
+          step (op:val) (!m, !b) = 
+              let n = read val
+              in case op of
+                  '+' -> (m,   b+n)
+                  '-' -> (m,   b-n)
+                  '*' -> (m*n, b*n)
+                  '/' -> (m/n, b/n)
