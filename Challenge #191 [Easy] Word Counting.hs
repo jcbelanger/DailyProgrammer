@@ -34,6 +34,4 @@ As a bonus, only extract the book's contents and nothing else.
 import Control.Arrow
 import Data.List
 
-main = interact $ show . challenge191
-                   
-challenge191 = map (head &&& length) . group . sort . words
+main = interact $ show . map (head &&& length) . group . sort . words
