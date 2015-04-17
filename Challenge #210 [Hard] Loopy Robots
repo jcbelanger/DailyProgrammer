@@ -1,0 +1,22 @@
+{-
+http://www.reddit.com/r/dailyprogrammer/comments/32vlg8/20150417_challenge_210_hard_loopy_robots/
+-}
+data Direction = N | E | S | W deriving Enum
+data Robot = Robot Int Int Direction
+
+result :: Robot -> String
+result (Robot 0 0 N) = "Loop detected! 1 cycle to complete loop"
+result (Robot _ _ N) = "No loop detected!"
+result (Robot _ _ S) = "Loop detected! 2 cycles to complete loop"
+result _             = "Loop detected! 4 cycles to complete loop"
+
+act :: Char -> Robot -> Robot
+act 'S' (Robot x y N) = Robot x (y+1) N
+act 'S' (Robot x y S) = Robot x (y-1) S
+act 'S' (Robot x y E) = Robot (x+1) y E
+act 'S' (Robot x y W) = Robot (x-1) y W
+act 'L' (Robot x y d) = Robot x y (toEnum $ (fromEnum d - 1) `mod` 4)
+act 'R' (Robot x y d) = Robot x y (toEnum $ (fromEnum d + 1) `mod` 4)
+
+main :: IO ()
+main = interact $ result . foldr act (Robot 0 0 N)
