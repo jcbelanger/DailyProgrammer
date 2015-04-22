@@ -1,0 +1,17 @@
+{-
+http://www.reddit.com/r/dailyprogrammer/comments/338p28/20150420_challenge_211_easy_the_name_game/
+-}
+
+import Data.Char (toLower)
+import Text.Printf (printf)
+
+main = interact $ game . init
+
+game :: String -> String
+game name = printf "%s, %s,\nBonana fanna %s,\nFee fy %s,\n%s,\n%s!"
+                    name name (bfm 'B' name) (bfm 'F' name) (bfm 'M' name) name
+
+bfm :: Char -> String -> String
+bfm c (x:xs) | c == x           = c:'o':'-':xs
+             | x `elem` "AEIOU" = c:'o':'-':c:toLower x:xs
+             | otherwise        = toLower c:'o':' ':c:xs
