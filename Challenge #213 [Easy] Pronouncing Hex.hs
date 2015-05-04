@@ -23,6 +23,4 @@ dig2 = dig1
              bibbityToFleventy = words "bibbi ci dicke ebbi fleven" `mdist` ["ty"]
 dig4 = dig2 <> dig2 `mdist` [" bitey"] `mdist` (mone <> ([" "] `mdist` dig2))
 
-main = interact $ f
-
-f =  (("zero":dig4) !!) . read
+main = interact $ (("zero":dig4) !!) . read
