@@ -19,7 +19,7 @@ import Control.Parallel.Strategies
 type Pos = (Int, Int)
 type Hand = Maybe Pos
 type Keyboard = Map Char [Pos]
-type App = RWST Keyboard (Sum Int, [Action]) (Hand, Hand) [] ()
+type App a = RWST Keyboard (Sum Int, [Action]) (Hand, Hand) [] a
 data Action = Use String Pos | Move String Pos Pos
 
 manhattanDist :: Pos -> Pos -> Int
@@ -28,7 +28,7 @@ manhattanDist (x1, y1) (x2, y2) = abs (x1 - x2) + abs (y1 - y2)
 keyboard = [ "qwertyuiop"
            , "asdfghjkl "
            , "^zxcvbnm ^"
-           , "  #####   " ]
+           , "   #####  " ]
 
 keyPos = [ (canonical key, (x,y))
          | (y, row) <- zip [0..] keyboard
@@ -44,14 +44,30 @@ keyMap = let groupedKeys = groupBy ((==) `on` fst) $ sortBy (comparing fst) keyP
 
 
 main = interact $ \input ->
-    case map snd $ evalRWST (mapM typeKey input) keyMap (Nothing, Nothing) of
+    case map snd $ evalRWST (typeSentence input) keyMap (Nothing, Nothing) of
         []    -> "keyboard does not support letters in input"
         solns -> let parSolns = withStrategy (parBuffer 32 parFst) solns
                      parFst (a,b) = (,) <$> rpar a <*> rseq b
                      (Sum tot, steps) = minimumBy (comparing fst) parSolns
                  in unlines $ map showAction steps ++ [printf "Total effort: %d" tot]
 
-typeKey :: Char -> App
+--Same as typeKey, but always starts with left to half the search space
+typeSentence :: String -> App [()]
+--typeSentence [] = return ()
+typeSentence (firstKey:rest) = do
+    keyMap <- ask
+    keyStroke <- lift $ do
+        poss <- catMaybes [Map.lookup (toLower firstKey) keyMap]
+        pos <- poss
+        if isUpper firstKey
+        then [leftHandTo shift >> rightHandTo pos 
+             | shifts <- catMaybes [Map.lookup '^' keyMap]
+             , shift <- shifts ]
+        else [leftHandTo pos]
+    keyStroke
+    mapM typeKey rest
+
+typeKey :: Char -> App ()
 typeKey key = do
     keyMap <- ask
     keyStroke <- lift $ do
@@ -66,19 +82,19 @@ typeKey key = do
         else [leftHandTo pos, rightHandTo pos]
     keyStroke
 
-leftHandTo :: Pos -> App
+leftHandTo :: Pos -> App ()
 leftHandTo new = do
     (left, right) <- get
     put (Just new, right)
     logMove "left" left new
 
-rightHandTo :: Pos -> App
+rightHandTo :: Pos -> App ()
 rightHandTo new = do
     (left, right) <- get
     put (left, Just new)
     logMove "right" right new
 
-logMove :: String -> Hand -> Pos -> App
+logMove :: String -> Hand -> Pos -> App ()
 logMove which hand new = do
     let (effort, action) = case hand of
             Nothing  -> (0, Use which new)
