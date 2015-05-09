@@ -53,7 +53,7 @@ main = interact $ \input ->
 
 --Same as typeKey, but always starts with left to half the search space
 typeSentence :: String -> App [()]
---typeSentence [] = return ()
+typeSentence [] = return [()]
 typeSentence (firstKey:rest) = do
     keyMap <- ask
     keyStroke <- lift $ do
