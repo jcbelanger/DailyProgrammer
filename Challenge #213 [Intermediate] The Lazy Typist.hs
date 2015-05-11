@@ -14,7 +14,6 @@ import Control.Applicative
 import Control.Arrow
 import Control.Monad.RWS.Strict
 import Text.Printf
-import Control.Parallel.Strategies
 
 type Pos = (Int, Int)
 type Hand = Maybe Pos
@@ -25,47 +24,34 @@ data Action = Use String Pos | Move String Pos Pos
 manhattanDist :: Pos -> Pos -> Int
 manhattanDist (x1, y1) (x2, y2) = abs (x1 - x2) + abs (y1 - y2)
 
+keyboard :: [String]
 keyboard = [ "qwertyuiop"
            , "asdfghjkl "
            , "^zxcvbnm ^"
            , "   #####  " ]
 
+keyPos :: [(Char, Pos)]
 keyPos = [ (canonical key, (x,y))
          | (y, row) <- zip [0..] keyboard
          , (x, key) <- zip [0..] row
          , key /= ' ' ]
 
+canonical :: Char -> Char
 canonical '#' = ' '
 canonical  k  =  k
 
 keyMap :: Keyboard
-keyMap = let groupedKeys = groupBy ((==) `on` fst) $ sortBy (comparing fst) keyPos
-         in  Map.fromList $ map (fst.head &&& map snd) groupedKeys
+keyMap = let sortByKeys = sortBy (comparing fst) keyPos
+             keyGroupings = groupBy ((==) `on` fst) sortByKeys
+             keyPosAscList = map (fst.head &&& map snd) keyGroupings
+         in Map.fromList keyPosAscList
 
-
+main :: IO ()
 main = interact $ \input ->
-    case map snd $ evalRWST (typeSentence input) keyMap (Nothing, Nothing) of
+    case evalRWST (mapM typeKey input) keyMap (Nothing, Nothing) of
         []    -> "keyboard does not support letters in input"
-        solns -> let parSolns = withStrategy (parBuffer 32 parFst) solns
-                     parFst (a,b) = (,) <$> rpar a <*> rseq b
-                     (Sum tot, steps) = minimumBy (comparing fst) parSolns
+        solns -> let (Sum tot, steps) = minimumBy (comparing fst) (map snd solns)
                  in unlines $ map showAction steps ++ [printf "Total effort: %d" tot]
-
---Same as typeKey, but always starts with left to half the search space
-typeSentence :: String -> App [()]
-typeSentence [] = return [()]
-typeSentence (firstKey:rest) = do
-    keyMap <- ask
-    keyStroke <- lift $ do
-        poss <- catMaybes [Map.lookup (toLower firstKey) keyMap]
-        pos <- poss
-        if isUpper firstKey
-        then [leftHandTo shift >> rightHandTo pos 
-             | shifts <- catMaybes [Map.lookup '^' keyMap]
-             , shift <- shifts ]
-        else [leftHandTo pos]
-    keyStroke
-    mapM typeKey rest
 
 typeKey :: Char -> App ()
 typeKey key = do
@@ -100,15 +86,16 @@ logMove which hand new = do
             Nothing  -> (0, Use which new)
             Just old -> (manhattanDist old new, Move which old new)
     tell (Sum effort, [action])
-    
-    
+
 showAction (Use which new) = printf "%s: Use %s hand" (keyAt new) which
 showAction (Move which old new) = printf "%s: Move %s hand from %s (effort: %d)"
     (keyAt new) which (keyAt old) (manhattanDist old new)
 
+showKey :: Char -> String
 showKey ' ' = "Space"
 showKey '^' = "Shift"
 showKey  k  = [toUpper k]
 
-keyAt pos | Just key <- lookup pos $ map swap keyPos = showKey key
-          | otherwise = "Key not found"
+keyAt :: Pos -> String
+keyAt pos | Just key <- lookup pos (map swap keyPos) = showKey key
+          | otherwise                                = "Key not found"
