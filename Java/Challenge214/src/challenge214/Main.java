@@ -3,6 +3,13 @@ package challenge214;
 import rtree.RTree;
 import rtree.Rectangle;
 
+/**
+ * Solution to Hard Challenge 214
+ * http://www.reddit.com/r/dailyprogrammer/comments/3629st/20150515_challenge_214_hard_chester_the_greedy/
+ * 
+ * @author Joshua Belanger
+ *
+ */
 public class Main {
 
 	public static void main(String[] args) {
