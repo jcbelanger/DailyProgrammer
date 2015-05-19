@@ -14,7 +14,6 @@ public class Main {
 				tree.insert(value, location);	
 			}	
 		}
-		System.out.println(tree);
 	}
 
 }

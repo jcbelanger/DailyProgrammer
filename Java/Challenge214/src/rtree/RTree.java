@@ -197,7 +197,7 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 						.stream()
 						.min(comparingBest)
 						.get();
-				best.entries.put(location, remaining.get(location));
+				best.insert(remaining.get(location), location);
 			}
 			
 			//TODO add entires2 to parent

@@ -51,5 +51,9 @@ public class Rectangle implements MBR<Rectangle> {
 		double dy = this.y1 - other.y1;
 		return dx*dx + dy*dy;
 	}
+	
+	public String toString() {
+		return "Rect[" + x1 + "," + y1 + "," + x2 + "," + y2 +"]";
+	}
 
 }
