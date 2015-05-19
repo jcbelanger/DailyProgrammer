@@ -1,4 +1,4 @@
-package rtree.region;
+package rtree;
 
 
 public class Rectangle implements MBR<Rectangle> {

@@ -1,4 +1,4 @@
-package rtree.region;
+package rtree;
 
 
 /**

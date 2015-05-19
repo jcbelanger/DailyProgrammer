@@ -8,8 +8,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import rtree.region.MBR;
-
 public class RTree<Container extends MBR<Container>, Value> implements Node<Container, Value>  {
 
 	private int min, max;

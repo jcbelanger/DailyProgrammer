@@ -1,7 +1,7 @@
 package challenge214;
 
 import rtree.RTree;
-import rtree.region.Rectangle;
+import rtree.Rectangle;
 
 public class Main {
 
