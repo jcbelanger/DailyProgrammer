@@ -52,6 +52,7 @@ public class Rectangle implements MBR<Rectangle> {
 		return dx*dx + dy*dy;
 	}
 	
+	@Override
 	public String toString() {
 		return "Rect[" + x1 + "," + y1 + "," + x2 + "," + y2 +"]";
 	}

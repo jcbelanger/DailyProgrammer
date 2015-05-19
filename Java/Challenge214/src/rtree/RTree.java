@@ -20,7 +20,7 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 	}
 
 	@Override
-	public Node<Container, Value> getParent() {
+	public InnerNode getParent() {
 		return root.getParent();
 	}
 
@@ -36,16 +36,16 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 	
 	class InnerNode implements Node<Container, Value> {
 
-		private Node<Container, Value> parent;
+		private InnerNode parent;
 		private Map<Container, Node<Container, Value>> children;
 
-		public InnerNode(Node<Container, Value> parent) {
+		public InnerNode(InnerNode parent) {
 			this.parent = parent;
 			this.children = new HashMap<>();
 		}
 
 		@Override
-		public Node<Container, Value> getParent() {
+		public InnerNode getParent() {
 			return parent;
 		}
 
@@ -67,6 +67,7 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 			
 			Comparator<Container> comparingEnlargement = (a, b) -> 
 				Integer.compare(a.enlargement(location), b.enlargement(location));
+				
 			Comparator<Container> comparingArea = Container::compareTo;
 
 			// TODO create general comparator fallback combinator
@@ -74,9 +75,10 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 			// under min by x and x remain -> enlargement -> area -> count
 			Comparator<Container> comparingEnlrgThenArea = (a, b) -> {
 				int firstCompare = comparingEnlargement.compare(a, b);
-				return firstCompare == 0 
-						? comparingArea.compare(a, b)
-						: firstCompare;
+				if(firstCompare != 0) {
+					return firstCompare;
+				}
+				return comparingArea.compare(a, b);
 			};
 
 			// never below min, so always have at least 1 element
@@ -93,17 +95,17 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 	class LeafNode implements Node<Container, Value> {
 
 		private Container region;
-		private Node<Container, Value> parent;
+		private InnerNode parent;
 		private Map<Container, Value> entries;
 
-		public LeafNode(Node<Container, Value> parent) {
+		public LeafNode(InnerNode parent) {
 			this.parent = parent;
 			this.region = null;
 			this.entries = new HashMap<>();
 		}
 
 		@Override
-		public Node<Container, Value> getParent() {
+		public InnerNode getParent() {
 			return parent;
 		}
 
@@ -140,6 +142,7 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 		}
 		
 		private void split() {
+			//TODO use quadtree to avoid O(n^2) farthest points lookup
 			Container farthest1 = null, farthest2 = null;
 			double maxDist = -1;
 			for(Container location1 : entries.keySet()) {
@@ -152,13 +155,10 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 					}
 				}
 			}
-
+			
 			Map<Container, Value> remaining = entries;			
-			LeafNode leaf1 = this;
+			LeafNode leaf1 = new LeafNode(parent);
 			LeafNode leaf2 = new LeafNode(parent);
-			leaf1.region = null;
-			leaf1.entries = new HashMap<>();
-			leaf2.entries = new HashMap<>();
 			leaf1.insert(remaining.remove(farthest1), farthest1);
 			leaf2.insert(remaining.remove(farthest2), farthest2);
 			
@@ -193,14 +193,31 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 					return comparingCount.compare(a, b);
 				};
 				
+
 				LeafNode best = Arrays.asList(leaf1, leaf2)
-						.stream()
-						.min(comparingBest)
-						.get();
+					.stream()
+					.min(comparingBest)
+					.get();
 				best.insert(remaining.get(location), location);
 			}
+
+			getParent().children.remove(this.region);
+			getParent().children.put(leaf1.region, leaf1);
+			splitParent(leaf2);
+		}
+
+		private void splitParent(LeafNode node) {
+			if(getParent() == null) {
+				//TODO handle root split
+				return;
+			}
 			
-			//TODO add entires2 to parent
+			if(getParent().children.size() < max) {
+				getParent().children.put(node.region, node);
+				return;
+			}
+			
+			//TODO handle recursively innerNode split
 		}
 		
 	}
@@ -210,7 +227,7 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 
 interface Node<Container extends MBR<Container>, Value> {
 	
-	Node<Container, Value> getParent();
+	RTree<Container, Value>.InnerNode getParent();
 
 	Collection<Value> search(Container query);
 
