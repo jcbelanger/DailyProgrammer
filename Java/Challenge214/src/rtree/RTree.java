@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class RTree<Container extends MBR<Container>, Value> implements Node<Container, Value>  {
+public class RTree<Container extends MBR<Container>, Value>  {
 
 	private int min, max;
 	private InnerNode root;
@@ -19,17 +19,10 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 		root = new InnerNode(null);
 	}
 
-	@Override
-	public InnerNode getParent() {
-		return root.getParent();
-	}
-
-	@Override
 	public Collection<Value> search(Container query) {
 		return root.search(query);
 	}
 
-	@Override
 	public void insert(Value value, Container location) {
 		root.insert(value, location);
 	}
@@ -90,6 +83,11 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 			bestRegion.enlarge(location);
 			children.get(bestRegion).insert(value, location);
 		}
+
+		@Override
+		public void split() {
+			// TODO implement
+		}
 	}
 
 	class LeafNode implements Node<Container, Value> {
@@ -141,7 +139,8 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 			}
 		}
 		
-		private void split() {
+		@Override 
+		public void split() {
 			//TODO use quadtree to avoid O(n^2) farthest points lookup
 			Container farthest1 = null, farthest2 = null;
 			double maxDist = -1;
@@ -203,21 +202,10 @@ public class RTree<Container extends MBR<Container>, Value> implements Node<Cont
 
 			getParent().children.remove(this.region);
 			getParent().children.put(leaf1.region, leaf1);
-			splitParent(leaf2);
-		}
-
-		private void splitParent(LeafNode node) {
-			if(getParent() == null) {
-				//TODO handle root split
-				return;
+			getParent().children.put(leaf2.region, leaf2);
+			if(getParent().children.size() >= max) {
+				getParent().split();	
 			}
-			
-			if(getParent().children.size() < max) {
-				getParent().children.put(node.region, node);
-				return;
-			}
-			
-			//TODO handle recursively innerNode split
 		}
 		
 	}
@@ -232,4 +220,6 @@ interface Node<Container extends MBR<Container>, Value> {
 	Collection<Value> search(Container query);
 
 	void insert(Value value, Container location);
+	
+	void split();
 }
