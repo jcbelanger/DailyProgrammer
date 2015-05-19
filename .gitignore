@@ -1,10 +1,14 @@
 # Eclipse
 .settings/
 .project
+.classpath
 
-# EclipseFP
-.dist-buildwrapper/
-.HTF/
+#Java
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
 
 # Haskell
 dist
