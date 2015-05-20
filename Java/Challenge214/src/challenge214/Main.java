@@ -17,12 +17,13 @@ public class Main {
 		RTree<Rectangle, String> tree = new RTree<>(5, 50);
 		for(int x = 0; x < 5; x++) {
 			for(int y = 0; y < 5; y++) {
+				//Simulate (x,y) point with rectangle until I add another Boundable instance
 				Rectangle location = new Rectangle(x, y, x, y);
 				String value = "(" + x + ", " + y + ")";
 				tree.insert(value, location);	
 			}	
 		}
-		tree.search(new Rectangle(0, 0, 5, 5)).forEach(System.out::println);
+		tree.search(new Rectangle(3, 3, 6, 6)).forEach(System.out::println);
 	}
 
 }

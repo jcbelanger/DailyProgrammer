@@ -17,8 +17,7 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 
 	public LeafNode(RTree<Bounds, Value> tree) {
 		this.tree = tree;
-		this.bounds = null;
-		this.entries = new HashMap<>();
+		reset();
 	}
 
 	@Override
@@ -28,32 +27,34 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 		} else {
 			return entries.keySet()
 				.stream()
-				.filter(location -> location.isIntersectedBy(query))
+				.filter(entryBounds -> entryBounds.isIntersectedBy(query))
 				.map(entries::get);
 		}
 	}
 
 	@Override
 	public Optional<Node<Bounds, Value>> insert(Value value, Bounds location) {
+		if (entries.size() < tree.max) {
+			return noBubbleInsert(value, location);
+		} else {
+			return bubbleInsert(value, location);
+		}
+	}
+	
+	protected Optional<Node<Bounds, Value>> noBubbleInsert(Value value, Bounds location) {
 		// TODO decide if we support overwrites
 		entries.put(location, value);
-		if (entries.size() <= tree.max) {
-			enlarge(location);
-			return Optional.empty();
-		} else {
-			return bubble();
-		}
-	}
-	
-	private void enlarge(Bounds toInclude) {
 		if(bounds == null) {
-			bounds = toInclude;
+			bounds = location;
 		} else {
-			bounds.enlarge(toInclude);
+			bounds.enlarge(location);
 		}
+		return Optional.empty();
 	}
 	
-	public Optional<Node<Bounds, Value>> bubble() {
+	protected Optional<Node<Bounds, Value>> bubbleInsert(Value value, Bounds location) {
+		entries.put(location, value);
+		
 		Bounds farthest1 = null, farthest2 = null;
 		double maxDist = -1;
 		for(Bounds location1 : entries.keySet()) {
@@ -69,18 +70,15 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 		
 		//save entries before the node is reset
 		Map<Bounds, Value> remaining = entries;
-
-		//reset this node
-		entries = new HashMap<>();
-		bounds = null;
+		reset();
 		LeafNode<Bounds, Value> bubbled = new LeafNode<>(tree);
 
 		//We will now accumulate entries between this node and one to be bubbled up
 		this.insert(remaining.remove(farthest1), farthest1);
 		bubbled.insert(remaining.remove(farthest2), farthest2);
 		
-		for(Bounds location : remaining.keySet()) {
-			Comparator<Bounds> onElargement = Comparator.comparingDouble(c -> c.enlargement(location));
+		for(Bounds bounds : remaining.keySet()) {
+			Comparator<Bounds> onElargement = Comparator.comparingDouble(b -> b.enlargement(bounds));
 			Comparator<Bounds> optimalBounds = onElargement.thenComparing(Boundable::getSize);
 
 			Comparator<Boolean> falseFirst = (a, b) -> a ^ b ? (a ? 1 : -1) : 0;
@@ -94,10 +92,15 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 					.thenComparingInt(leaf -> leaf.entries.size());
 
 			LeafNode<Bounds, Value> best = Arrays.asList(this, bubbled).stream().min(optimalNode).get();
-			best.insert(remaining.remove(location), location);
+			best.insert(remaining.remove(bounds), bounds);
 		}
 		
 		return Optional.of(bubbled);
+	}
+
+	private void reset() {
+		entries = new HashMap<>();
+		bounds = null;
 	}
 
 	@Override
