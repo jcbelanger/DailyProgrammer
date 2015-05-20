@@ -81,7 +81,7 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 		
 		for(Bounds location : remaining.keySet()) {
 			Comparator<Bounds> onElargement = Comparator.comparingDouble(c -> c.enlargement(location));
-			Comparator<Bounds> optimalRegion = onElargement.thenComparing(Boundable::getSize);
+			Comparator<Bounds> optimalBounds = onElargement.thenComparing(Boundable::getSize);
 
 			Comparator<Boolean> falseFirst = (a, b) -> a ^ b ? (a ? 1 : -1) : 0;
 			
@@ -90,7 +90,7 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 			};
 			
 			Comparator<LeafNode<Bounds, Value>> optimalNode = Comparator.comparing(isMinMeetable, falseFirst)
-					.thenComparing(Comparator.comparing(Node::getBounds, optimalRegion))
+					.thenComparing(Comparator.comparing(Node::getBounds, optimalBounds))
 					.thenComparingInt(leaf -> leaf.entries.size());
 
 			LeafNode<Bounds, Value> best = Arrays.asList(this, bubbled).stream().min(optimalNode).get();
