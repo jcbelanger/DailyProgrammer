@@ -14,7 +14,7 @@ public class Main {
 
 	public static void main(String[] args) {
 		//Test 5x5 grid
-		RTree<Rectangle, String> tree = new RTree<>(5, 10);
+		RTree<Rectangle, String> tree = new RTree<>(5, 50);
 		for(int x = 0; x < 5; x++) {
 			for(int y = 0; y < 5; y++) {
 				Rectangle location = new Rectangle(x, y, x, y);
@@ -22,7 +22,7 @@ public class Main {
 				tree.insert(value, location);	
 			}	
 		}
-		System.out.println(tree);
+		tree.search(new Rectangle(0, 0, 5, 5)).forEach(System.out::println);
 	}
 
 }

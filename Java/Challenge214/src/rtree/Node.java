@@ -1,14 +1,14 @@
 package rtree;
 
-import java.util.Collection;
+import java.util.Optional;
+import java.util.stream.Stream;
 
-interface Node<Container extends MBR<Container>, Value> {
+interface Node<Bounds extends Boundable<Bounds>, Value> {
 	
-	InnerNode<Container, Value> getParent();
+	Bounds getBounds();
 
-	Collection<Value> search(Container query);
+	Stream<Value> search(Bounds query);
 
-	void insert(Value value, Container location);
-	
-	void split();
+	Optional<Node<Bounds, Value>> insert(Value value, Bounds location);
+
 }

@@ -1,9 +1,9 @@
 package rtree;
 
 
-public class Rectangle implements MBR<Rectangle> {
+public class Rectangle implements Boundable<Rectangle> {
 
-	public double x1, y1, x2, y2;
+	protected double x1, y1, x2, y2;
 
 	public Rectangle(double x1, double y1, double x2, double y2) {
 		this.x1 = Math.min(x1, x2);
@@ -12,7 +12,8 @@ public class Rectangle implements MBR<Rectangle> {
 		this.y2 = Math.max(y1, y2);
 	}
 	
-	private double getArea() {
+	@Override
+	public double getSize() {
 		return (x2 - x1) * (y2 - y1);
 	}
 	
@@ -34,15 +35,10 @@ public class Rectangle implements MBR<Rectangle> {
 	}
 
 	@Override
-	public int compareTo(Rectangle other) {
-		return Double.compare(this.getArea(), other.getArea());
-	}
-
-	@Override
-	public int enlargement(Rectangle toInclude) {
+	public double enlargement(Rectangle toInclude) {
 		Rectangle enlarged = new Rectangle(x1, y1, x2, y2);
 		enlarged.enlarge(toInclude);
-		return enlarged.compareTo(this);
+		return enlarged.getSize() - this.getSize();
 	}
 
 	@Override

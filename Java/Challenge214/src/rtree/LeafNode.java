@@ -1,72 +1,63 @@
 package rtree;
 
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 
-class LeafNode<Container extends MBR<Container>, Value>  implements Node<Container, Value> {
+class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds, Value> {
 
-	private RTree<Container, Value> tree;
-	private Container region;
-	private InnerNode<Container, Value> parent;
-	private Map<Container, Value> entries;
+	private RTree<Bounds, Value> tree;
+	private Bounds bounds;
+	private Map<Bounds, Value> entries;
 
-	public LeafNode(RTree<Container, Value> tree, InnerNode<Container, Value> parent) {
+	public LeafNode(RTree<Bounds, Value> tree) {
 		this.tree = tree;
-		this.parent = parent;
-		this.region = null;
+		this.bounds = null;
 		this.entries = new HashMap<>();
 	}
 
 	@Override
-	public InnerNode<Container, Value> getParent() {
-		return parent;
-	}
-
-	@Override
-	public Collection<Value> search(Container query) {
-		if(region == null) {
-			return Collections.emptyList();
+	public Stream<Value> search(Bounds query) {
+		if(bounds == null || !bounds.isIntersectedBy(query)) {
+			return Stream.empty();
 		} else {
 			return entries.keySet()
 				.stream()
-				.filter(location -> query.isIntersectedBy(location))
-				.map(entries::get)
-				.collect(Collectors.toList());
+				.filter(location -> location.isIntersectedBy(query))
+				.map(entries::get);
 		}
 	}
 
 	@Override
-	public void insert(Value value, Container location) {
-		// TODO decide if allow overwrites
+	public Optional<Node<Bounds, Value>> insert(Value value, Bounds location) {
+		// TODO decide if we support overwrites
 		entries.put(location, value);
 		if (entries.size() <= tree.max) {
 			enlarge(location);
+			return Optional.empty();
 		} else {
-			split();	
+			return bubble();
 		}
 	}
 	
-	private void enlarge(Container toInclude) {
-		if(region == null) {
-			region = toInclude;
+	private void enlarge(Bounds toInclude) {
+		if(bounds == null) {
+			bounds = toInclude;
 		} else {
-			region.enlarge(toInclude);
+			bounds.enlarge(toInclude);
 		}
 	}
 	
-	@Override 
-	public void split() {
-		//TODO use quadtree to avoid O(n^2) farthest points lookup
-		Container farthest1 = null, farthest2 = null;
+	public Optional<Node<Bounds, Value>> bubble() {
+		Bounds farthest1 = null, farthest2 = null;
 		double maxDist = -1;
-		for(Container location1 : entries.keySet()) {
-			for(Container location2 : entries.keySet()) {
+		for(Bounds location1 : entries.keySet()) {
+			for(Bounds location2 : entries.keySet()) {
 				double dist = location1.distanceBetween(location2);
 				if(location1 != location2 && dist > maxDist) {
 					farthest1 = location1;
@@ -76,57 +67,41 @@ class LeafNode<Container extends MBR<Container>, Value>  implements Node<Contain
 			}
 		}
 		
-		Map<Container, Value> remaining = entries;			
-		LeafNode<Container, Value> leaf1 = new LeafNode<>(tree, parent);
-		LeafNode<Container, Value> leaf2 = new LeafNode<>(tree, parent);
-		leaf1.insert(remaining.remove(farthest1), farthest1);
-		leaf2.insert(remaining.remove(farthest2), farthest2);
+		//save entries before the node is reset
+		Map<Bounds, Value> remaining = entries;
+
+		//reset this node
+		entries = new HashMap<>();
+		bounds = null;
+		LeafNode<Bounds, Value> bubbled = new LeafNode<>(tree);
+
+		//We will now accumulate entries between this node and one to be bubbled up
+		this.insert(remaining.remove(farthest1), farthest1);
+		bubbled.insert(remaining.remove(farthest2), farthest2);
 		
-		for(Container location : remaining.keySet()) {
-			double remain = entries.size();
+		for(Bounds location : remaining.keySet()) {
+			Comparator<Bounds> onElargement = Comparator.comparingDouble(c -> c.enlargement(location));
+			Comparator<Bounds> optimalRegion = onElargement.thenComparing(Boundable::getSize);
+
+			Comparator<Boolean> falseFirst = (a, b) -> a ^ b ? (a ? 1 : -1) : 0;
 			
-			Comparator<LeafNode<Container, Value>> meetMin = (a,b) ->
-				Boolean.compare(a.entries.size() + remain < tree.min,
-								b.entries.size() + remain < tree.min);
-			Comparator<LeafNode<Container, Value>> comparingEnlargement = (a, b) -> 
-				Integer.compare(a.region.enlargement(location),
-								b.region.enlargement(location));
-			Comparator<LeafNode<Container, Value>> comparingCount = (a,b) -> 
-				Integer.compare(a.entries.size(),
-								b.entries.size());
-			Comparator<LeafNode<Container, Value>> comparingArea = (a,b) -> 
-				a.region.compareTo(b.region);
-			
-			//TODO use utility to dry out comparison fallbacks
-			Comparator<LeafNode<Container, Value>> comparingBest = (a, b) -> {
-				int first = meetMin.compare(a, b);
-				if(first != 0) {
-					return first;
-				}
-				int second = comparingEnlargement.compare(a, b);
-				if(second != 0) {
-					return second;
-				}
-				int third = comparingArea.compare(a, b);
-				if(third != 0) {
-					return third;
-				}
-				return comparingCount.compare(a, b);
+			Function<LeafNode<Bounds, Value>, Boolean> isMinMeetable = leaf -> {
+				return leaf.entries.size() + remaining.size() > tree.min;
 			};
 			
+			Comparator<LeafNode<Bounds, Value>> optimalNode = Comparator.comparing(isMinMeetable, falseFirst)
+					.thenComparing(Comparator.comparing(Node::getBounds, optimalRegion))
+					.thenComparingInt(leaf -> leaf.entries.size());
 
-			LeafNode<Container, Value> best = Arrays.asList(leaf1, leaf2)
-				.stream()
-				.min(comparingBest)
-				.get();
-			best.insert(remaining.get(location), location);
+			LeafNode<Bounds, Value> best = Arrays.asList(this, bubbled).stream().min(optimalNode).get();
+			best.insert(remaining.remove(location), location);
 		}
+		
+		return Optional.of(bubbled);
+	}
 
-		getParent().children.remove(this.region);
-		getParent().children.put(leaf1.region, leaf1);
-		getParent().children.put(leaf2.region, leaf2);
-		if(getParent().children.size() >= tree.max) {
-			getParent().split();	
-		}
+	@Override
+	public Bounds getBounds() {
+		return bounds;
 	}
 }

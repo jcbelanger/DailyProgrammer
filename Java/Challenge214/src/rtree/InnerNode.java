@@ -1,73 +1,73 @@
 package rtree;
 
-import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
 
 
-class InnerNode<Container extends MBR<Container>, Value> implements Node<Container, Value> {
+class InnerNode<Bounds extends Boundable<Bounds>, Value> implements Node<Bounds, Value> {
 
-	private RTree<Container, Value> tree;
-	private InnerNode<Container, Value> parent;
-	protected Map<Container, Node<Container, Value>> children;
+	private RTree<Bounds, Value> tree;
+	private Set<Node<Bounds, Value>> children;
+	private Bounds bounds;
 
-	public InnerNode(RTree<Container, Value> tree, InnerNode<Container, Value> parent) {
+	public InnerNode(RTree<Bounds, Value> tree) {
 		this.tree = tree;
-		this.parent = parent;
-		this.children = new HashMap<>();
+		this.bounds = null;
+		this.children = new HashSet<>();
 	}
 
 	@Override
-	public InnerNode<Container, Value> getParent() {
-		return parent;
-	}
-
-	@Override
-	public Collection<Value> search(Container query) {
-		return children.keySet()
-			.stream()
-			.filter(region -> region.isIntersectedBy(query))
-			.map(children::get)
-			.flatMap(node -> node.search(query).stream())
-			.collect(Collectors.toList());
-	}
-
-	@Override
-	public void insert(Value value, Container location) {
-		if(children.size() == 0) {
-			children.put(location, new LeafNode<>(tree, this));
+	public Optional<Node<Bounds, Value>> insert(Value value, Bounds location) {
+		enlarge(location);
+		
+		if(children.size() < tree.max) {
+			LeafNode<Bounds, Value> leaf = new LeafNode<>(tree);
+			leaf.insert(value, location);
+			children.add(leaf);
+			return Optional.empty();
 		}
 		
-		Comparator<Container> comparingEnlargement = (a, b) -> 
-			Integer.compare(a.enlargement(location), b.enlargement(location));
-			
-		Comparator<Container> comparingArea = Container::compareTo;
+		Comparator<Bounds> onElargement = Comparator.comparingDouble(c -> c.enlargement(location));
+		Comparator<Bounds> onSize = Comparator.comparingDouble(Boundable::getSize);
+		Comparator<Bounds> optimalBounds = onElargement.thenComparing(onSize);
+		
+		return children
+			.stream()
+			.min(Comparator.comparing(Node::getBounds, optimalBounds))
+			.flatMap(child -> child.insert(value, location))
+			.flatMap(this::fizz);
+	}
 
-		// TODO create general comparator fallback combinator
-		// ^needed in split where comparison order is:
-		// under min by x and x remain -> enlargement -> area -> count
-		Comparator<Container> comparingEnlrgThenArea = (a, b) -> {
-			int firstCompare = comparingEnlargement.compare(a, b);
-			if(firstCompare != 0) {
-				return firstCompare;
-			}
-			return comparingArea.compare(a, b);
-		};
-
-		// never below min, so always have at least 1 element
-		Container bestRegion = children.keySet()
-				.stream()
-				.min(comparingEnlrgThenArea)
-				.get();
-
-		bestRegion.enlarge(location);
-		children.get(bestRegion).insert(value, location);
+	protected void enlarge(Bounds toInclude) {
+		if(bounds == null) {
+			bounds = toInclude;
+		} else {
+			bounds.enlarge(toInclude);
+		}
+	}
+	
+	private Optional<Node<Bounds, Value>> fizz(Node<Bounds, Value> bubbled) {
+		if(children.size() <= tree.max) {
+			return Optional.empty();
+		}
+		//TODO implement split
+		return Optional.empty();
 	}
 
 	@Override
-	public void split() {
-		// TODO implement
+	public Bounds getBounds() {
+		return bounds;
+	}
+
+	@Override
+	public Stream<Value> search(Bounds query) {
+		if(bounds == null || !bounds.isIntersectedBy(query)) {
+			return Stream.empty();
+		} else {
+			return children.stream().flatMap(child -> child.search(query));
+		}
 	}
 }
