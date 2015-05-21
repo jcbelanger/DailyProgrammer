@@ -3,6 +3,7 @@ package rtree;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -34,7 +35,7 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 
 	@Override
 	public Optional<Node<Bounds, Value>> insert(Value value, Bounds location) {
-		if (entries.size() < tree.max) {
+		if (size() < tree.max) {
 			return noBubbleInsert(value, location);
 		} else {
 			return bubbleInsert(value, location);
@@ -45,7 +46,7 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 		// TODO decide if we support overwrites
 		entries.put(location, value);
 		if(bounds == null) {
-			bounds = location;
+			bounds = location.clone();
 		} else {
 			bounds.enlarge(location);
 		}
@@ -77,14 +78,17 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 		this.insert(remaining.remove(farthest1), farthest1);
 		bubbled.insert(remaining.remove(farthest2), farthest2);
 		
-		for(Bounds bounds : remaining.keySet()) {
+		for(Iterator<Bounds> iter = remaining.keySet().iterator(); iter.hasNext();) {
+			Bounds bounds = iter.next();
+			Value entry = remaining.get(bounds);
+			
 			Comparator<Bounds> onElargement = Comparator.comparingDouble(b -> b.enlargement(bounds));
 			Comparator<Bounds> optimalBounds = onElargement.thenComparing(Boundable::getSize);
 
 			Comparator<Boolean> falseFirst = (a, b) -> a ^ b ? (a ? 1 : -1) : 0;
 			
 			Function<LeafNode<Bounds, Value>, Boolean> isMinMeetable = leaf -> {
-				return leaf.entries.size() + remaining.size() > tree.min;
+				return leaf.size() + remaining.size() > tree.min;
 			};
 			
 			Comparator<LeafNode<Bounds, Value>> optimalNode = Comparator.comparing(isMinMeetable, falseFirst)
@@ -92,7 +96,8 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 					.thenComparingInt(leaf -> leaf.entries.size());
 
 			LeafNode<Bounds, Value> best = Arrays.asList(this, bubbled).stream().min(optimalNode).get();
-			best.insert(remaining.remove(bounds), bounds);
+			best.insert(entry, bounds);
+			iter.remove();
 		}
 		
 		return Optional.of(bubbled);
@@ -106,5 +111,10 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 	@Override
 	public Bounds getBounds() {
 		return bounds;
+	}
+
+	@Override
+	public int size() {
+		return entries.size();
 	}
 }

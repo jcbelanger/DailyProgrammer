@@ -33,14 +33,7 @@ public class Rectangle implements Boundable<Rectangle> {
 		x2 = Math.max(x2, toInclude.x2);
 		y2 = Math.max(y2, toInclude.y2);
 	}
-
-	@Override
-	public double enlargement(Rectangle toInclude) {
-		Rectangle enlarged = new Rectangle(x1, y1, x2, y2);
-		enlarged.enlarge(toInclude);
-		return enlarged.getSize() - this.getSize();
-	}
-
+	
 	@Override
 	public double distanceBetween(Rectangle other) {
 		double dx = this.x1 - other.x1;
@@ -51,6 +44,11 @@ public class Rectangle implements Boundable<Rectangle> {
 	@Override
 	public String toString() {
 		return "Rect[" + x1 + "," + y1 + "," + x2 + "," + y2 +"]";
+	}
+
+	@Override
+	public Rectangle clone() {
+		return new Rectangle(x1, y1, x2, y2);
 	}
 
 }

@@ -4,16 +4,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 
 class InnerNode<Bounds extends Boundable<Bounds>, Value> implements Node<Bounds, Value> {
 
-	private RTree<Bounds, Value> tree;
-	private Collection<Node<Bounds, Value>> children;
-	private Bounds bounds;
-
+	protected RTree<Bounds, Value> tree;
+	protected Collection<Node<Bounds, Value>> children;
+	protected Bounds bounds;
+	
 	public InnerNode(RTree<Bounds, Value> tree) {
 		this.tree = tree;
 		reset();
@@ -21,7 +23,7 @@ class InnerNode<Bounds extends Boundable<Bounds>, Value> implements Node<Bounds,
 
 	@Override
 	public Optional<Node<Bounds, Value>> insert(Value value, Bounds location) {
-		if(children.size() < tree.max) {
+		if(size() < tree.max) {
 			return noBubbleInsert(value, location);
 		} else {
 			return bubbleInsert(value, location);	
@@ -52,19 +54,20 @@ class InnerNode<Bounds extends Boundable<Bounds>, Value> implements Node<Bounds,
 	protected Optional<Node<Bounds, Value>> noBubbleInsert(Node<Bounds, Value> node) {
 		children.add(node);
 		if(bounds == null) {
-			bounds = node.getBounds();
+			bounds = node.getBounds().clone();
 		} else {
 			bounds.enlarge(node.getBounds());
 		}
 		return Optional.empty();
 	}
 	
-	private Optional<Node<Bounds, Value>> fizz(Node<Bounds, Value> bubbled) {
+	protected Optional<Node<Bounds, Value>> fizz(Node<Bounds, Value> bubbled) {
 		children.add(bubbled);
 		if(children.size() <= tree.max) {
 			return Optional.empty();
+		} else {
+			return bubble();
 		}
-		return bubble();
 	}
 	
 	protected Optional<Node<Bounds, Value>> bubble() {
@@ -93,28 +96,27 @@ class InnerNode<Bounds extends Boundable<Bounds>, Value> implements Node<Bounds,
 		remaining.remove(farthest1);
 		remaining.remove(farthest2);
 		
-		
 		this.noBubbleInsert(farthest1);
 		bubbled.noBubbleInsert(farthest2);
 		
-		for(Node<Bounds, Value> node : remaining) {
-			Comparator<Bounds> onElargement = Comparator.comparingDouble(b -> b.enlargement(node.getBounds()));
+		for(Iterator<Node<Bounds, Value>> iter = remaining.iterator(); iter.hasNext();) {
+			Node<Bounds, Value> child = iter.next();
+			
+			Comparator<Bounds> onElargement = Comparator.comparingDouble(b -> b.enlargement(child.getBounds()));
 			Comparator<Bounds> optimalBounds = onElargement.thenComparing(Boundable::getSize);
 
 			//TODO implement min size checking
-//			Comparator<Boolean> falseFirst = (a, b) -> a ^ b ? (a ? 1 : -1) : 0;
-//			
-//			Function<LeafNode<Bounds, Value>, Boolean> isMinMeetable = leaf -> {
-//				return leaf.entries.size() + remaining.size() > tree.min;
-//			};
-//			= Comparator.comparing(isMinMeetable, falseFirst)
-//			
+			Comparator<Boolean> falseFirst = (a, b) -> a ^ b ? (a ? 1 : -1) : 0;
+			Function<InnerNode<Bounds, Value>, Boolean> isMinMeetable = node -> {
+				return node.size() + remaining.size() > tree.min;
+			};
+			Comparator<InnerNode<Bounds, Value>> onMeetsMin = Comparator.comparing(isMinMeetable, falseFirst);
 
-			Comparator<InnerNode<Bounds, Value>> optimalNode = Comparator.comparing(Node::getBounds, optimalBounds);
+			Comparator<InnerNode<Bounds, Value>> optimalNode = onMeetsMin.thenComparing(Node::getBounds, optimalBounds);
 
 			InnerNode<Bounds, Value> best = Arrays.asList(this, bubbled).stream().min(optimalNode).get();
-			remaining.remove(node);
-			best.noBubbleInsert(node);
+			best.noBubbleInsert(child);
+			iter.remove();
 		}
 		
 		return Optional.of(bubbled);
@@ -137,5 +139,11 @@ class InnerNode<Bounds extends Boundable<Bounds>, Value> implements Node<Bounds,
 		} else {
 			return children.stream().flatMap(child -> child.search(query));
 		}
+	}
+
+	@Override
+	public int size() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

@@ -14,12 +14,18 @@ public interface Boundable<Bounds extends Boundable<Bounds>> {
 
 	boolean isIntersectedBy(Bounds other);
 
-	double enlargement(Bounds toInclude);
-
 	void enlarge(Bounds toInclude);
 	
 	double distanceBetween(Bounds other);
 	
 	double getSize();
+	
+	Bounds clone();
+	
+	default double enlargement(Bounds toInclude) {
+		Bounds enlarged = this.clone();
+		enlarged.enlarge(toInclude);
+		return enlarged.getSize() - this.getSize();
+	}
 
 }

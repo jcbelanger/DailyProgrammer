@@ -10,5 +10,7 @@ interface Node<Bounds extends Boundable<Bounds>, Value> {
 	Stream<Value> search(Bounds query);
 
 	Optional<Node<Bounds, Value>> insert(Value value, Bounds location);
+	
+	int size();
 
 }
