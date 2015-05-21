@@ -125,22 +125,24 @@ class InnerNode<Bounds extends Boundable<Bounds>, Value> implements Node<Bounds,
 		
 		for(Iterator<Node<Bounds, Value>> iter = remaining.iterator(); iter.hasNext();) {
 			Node<Bounds, Value> child = iter.next();
+			iter.remove();
 			
-			Comparator<Bounds> onElargement = Comparator.comparingDouble(b -> b.enlargement(child.getBounds()));
-			Comparator<Bounds> optimalBounds = onElargement.thenComparing(Boundable::getSize);
-
-			//TODO implement min size checking
-			Comparator<Boolean> falseFirst = (a, b) -> a ^ b ? (a ? 1 : -1) : 0;
-			Function<InnerNode<Bounds, Value>, Boolean> isMinMeetable = node -> {
+			Function<Node<Bounds, ?>, Boolean> isMinMeetable = node -> {
 				return node.size() + remaining.size() > tree.min;
 			};
-			Comparator<InnerNode<Bounds, Value>> onMeetsMin = Comparator.comparing(isMinMeetable, falseFirst);
 
-			Comparator<InnerNode<Bounds, Value>> optimalNode = onMeetsMin.thenComparing(Node::getBounds, optimalBounds);
+			//java8 doesn't have a comparingBoolean
+			Comparator<Boolean> falseFirst = (a, b) -> a ^ b ? (a ? 1 : -1) : 0;
 
-			InnerNode<Bounds, Value> best = Arrays.asList(this, bubbled).stream().min(optimalNode).get();
-			best.noBubbleInsert(child);
-			iter.remove();
+			Arrays.asList(this, bubbled)
+				.stream()
+				.min(Comparator
+					.comparing(isMinMeetable, falseFirst)
+					.thenComparingDouble(node -> node.getBounds().enlargement(bounds))
+					.thenComparingDouble(node -> node.getBounds().getSize())
+					.thenComparingInt(Node::size))
+				.get()
+				.noBubbleInsert(child);
 		}
 		
 		return Optional.of(bubbled);

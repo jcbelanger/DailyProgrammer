@@ -14,6 +14,7 @@ public class Rectangle implements Boundable<Rectangle> {
 	
 	@Override
 	public double getSize() {
+		//Don't have to use Math.abs because points are ordered by constructor
 		return (x2 - x1) * (y2 - y1);
 	}
 	
@@ -36,6 +37,7 @@ public class Rectangle implements Boundable<Rectangle> {
 	
 	@Override
 	public double distanceBetween(Rectangle other) {
+		//Don't have to call Math.sqrt because value is only used for comparison, not calculations
 		double dx = this.x1 - other.x1;
 		double dy = this.y1 - other.y1;
 		return dx*dx + dy*dy;
