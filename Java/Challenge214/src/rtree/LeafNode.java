@@ -21,15 +21,30 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 		reset();
 	}
 
+	private void reset() {
+		entries = new HashMap<>();
+		bounds = null;
+	}
+
+	@Override
+	public int size() {
+		return entries.size();
+	}
+
+	@Override
+	public Bounds getBounds() {
+		return bounds;
+	}
+
 	@Override
 	public Stream<Value> search(Bounds query) {
-		if(bounds == null || !bounds.isIntersectedBy(query)) {
-			return Stream.empty();
-		} else {
+		if(bounds.isIntersectedBy(query)) {
 			return entries.keySet()
 				.stream()
 				.filter(entryBounds -> entryBounds.isIntersectedBy(query))
 				.map(entries::get);
+		} else {
+			return Stream.empty();
 		}
 	}
 
@@ -81,40 +96,27 @@ class LeafNode<Bounds extends Boundable<Bounds>, Value>  implements Node<Bounds,
 		for(Iterator<Bounds> iter = remaining.keySet().iterator(); iter.hasNext();) {
 			Bounds bounds = iter.next();
 			Value entry = remaining.get(bounds);
-			
-			Comparator<Bounds> onElargement = Comparator.comparingDouble(b -> b.enlargement(bounds));
-			Comparator<Bounds> optimalBounds = onElargement.thenComparing(Boundable::getSize);
-
-			Comparator<Boolean> falseFirst = (a, b) -> a ^ b ? (a ? 1 : -1) : 0;
-			
-			Function<LeafNode<Bounds, Value>, Boolean> isMinMeetable = leaf -> {
-				return leaf.size() + remaining.size() > tree.min;
-			};
-			
-			Comparator<LeafNode<Bounds, Value>> optimalNode = Comparator.comparing(isMinMeetable, falseFirst)
-					.thenComparing(Comparator.comparing(Node::getBounds, optimalBounds))
-					.thenComparingInt(leaf -> leaf.entries.size());
-
-			LeafNode<Bounds, Value> best = Arrays.asList(this, bubbled).stream().min(optimalNode).get();
-			best.insert(entry, bounds);
 			iter.remove();
+
+			Function<Node<Bounds, ?>, Boolean> isMinMeetable = node -> {
+				return node.size() + remaining.size() > tree.min;
+			};
+
+			//java8 doesn't have a comparingBoolean
+			Comparator<Boolean> falseFirst = (a, b) -> a ^ b ? (a ? 1 : -1) : 0;
+
+			Arrays.asList(this, bubbled)
+				.stream()
+				.min(Comparator
+					.comparing(isMinMeetable, falseFirst)
+					.thenComparingDouble(node -> node.getBounds().enlargement(bounds))
+					.thenComparingDouble(node -> node.getBounds().getSize())
+					.thenComparingInt(Node::size))
+				.get()
+				.noBubbleInsert(entry, bounds);
 		}
 		
 		return Optional.of(bubbled);
 	}
 
-	private void reset() {
-		entries = new HashMap<>();
-		bounds = null;
-	}
-
-	@Override
-	public Bounds getBounds() {
-		return bounds;
-	}
-
-	@Override
-	public int size() {
-		return entries.size();
-	}
 }

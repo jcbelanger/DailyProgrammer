@@ -21,6 +21,30 @@ class InnerNode<Bounds extends Boundable<Bounds>, Value> implements Node<Bounds,
 		reset();
 	}
 
+	private void reset() {
+		children = new ArrayList<>();
+		bounds = null;
+	}
+
+	@Override
+	public int size() {
+		return children.size();
+	}
+
+	@Override
+	public Bounds getBounds() {
+		return bounds;
+	}
+
+	@Override
+	public Stream<Value> search(Bounds query) {
+		if(bounds == null || !bounds.isIntersectedBy(query)) {
+			return Stream.empty();
+		} else {
+			return children.stream().flatMap(child -> child.search(query));
+		}
+	}
+
 	@Override
 	public Optional<Node<Bounds, Value>> insert(Value value, Bounds location) {
 		if(size() < tree.max) {
@@ -122,28 +146,4 @@ class InnerNode<Bounds extends Boundable<Bounds>, Value> implements Node<Bounds,
 		return Optional.of(bubbled);
 	}
 
-	private void reset() {
-		children = new ArrayList<>();
-		bounds = null;
-	}
-
-	@Override
-	public Bounds getBounds() {
-		return bounds;
-	}
-
-	@Override
-	public Stream<Value> search(Bounds query) {
-		if(bounds == null || !bounds.isIntersectedBy(query)) {
-			return Stream.empty();
-		} else {
-			return children.stream().flatMap(child -> child.search(query));
-		}
-	}
-
-	@Override
-	public int size() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 }
