@@ -8,9 +8,9 @@ main = interact $ \input ->
     let [wordCount, _]:compares = [map read (words line) | line <- lines input]
         allSorted = all isSorted [ foldl runCompare testNum compares
                                  | testNum <- V.replicateM wordCount [0,1] ]
-    in case allSorted of
-        True  -> "Valid network"
-        False -> "Invalid network"
+    in if allSorted 
+       then "Valid network"
+       else "Invalid network"
 
 isSorted xs = V.and $ V.zipWith (<=) xs (V.drop 1 xs)
 
