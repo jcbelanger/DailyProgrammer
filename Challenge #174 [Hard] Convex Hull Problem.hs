@@ -30,29 +30,20 @@ import Data.Maybe
 import Data.Monoid
 import Data.Ord
 
-type Point = (Double, Double)
+grahamScan :: [(Double,Double)] -> [(Double,Double)]
+grahamScan points@(_:_:_) = foldl' takeLeftTurns [minAngle,bottomLeft] restByAngles where
+    bottomLeft = minimumBy (comparing snd <> comparing fst) points
+    minAngle:restByAngles = sortOn (xAxisAngle bottomLeft) (delete bottomLeft points)
+    xAxisAngle (x1,y1) (x2,y2) = atan2 (y2 - y1) (x2 - x1)
+    isLeftTurn (x1,y1) (x2,y2) (x3,y3) = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1) > 0
+    takeLeftTurns (cur:prev:rest) next | isLeftTurn prev cur next = next:cur:prev:rest
+                                       | otherwise                = next:prev:rest
+grahamScan points = points
 
-grahamScan :: [Point] -> [Point]
-grahamScan [] = []
-grahamScan [point] = [point]
-grahamScan points = let bottomLeft = minimumBy (comparing snd <> comparing fst) points
-                        minAngle:byAngles = sortBy (comparing $ xAxisAngle bottomLeft) points
-                        takeLeftTurns (cur:prev:rest) next = if isLeftTurn prev cur next
-                                                             then next:cur:prev:rest
-                                                             else next:prev:rest
-                    in  foldl' takeLeftTurns [minAngle, bottomLeft] byAngles
-
-xAxisAngle :: Point -> Point -> Double
-xAxisAngle (x1, y1) (x2, y2) = atan2 (y2 - y1) (x2 - x1)
-
-isLeftTurn :: Point -> Point -> Point -> Bool
-isLeftTurn (x1, y1) (x2, y2) (x3, y3) = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1) > 0
-               
-parsePoint :: String -> Point
-parsePoint input = let (x, ',' : y) = break (==',') input in (read x, read y)
-
+main :: IO ()
 main = interact $ \input ->
-    let points = map parsePoint . tail . lines $ input
+    let points = map parsePoint . tail $ lines input
+        parsePoint input = (read x, read y) where (x,_:y) = break (==',') input
         pointMap = zip points ['A'..]
         hull = grahamScan points
-    in  catMaybes . map (`lookup` pointMap) $ hull
+    in  catMaybes $ map (`lookup` pointMap) hull
