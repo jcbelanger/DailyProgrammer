@@ -61,3 +61,28 @@ main = interact $ \input -> let [b, num] = words input
                                 base = read b
                                 num10 = toBase10 base num
                             in fromBase10 (-base) num10
+
+--unrelated factorial work--
+
+{-
+
+toFactoradic :: Int -> [Int]
+toFactoradic = reverse . map snd . takeWhile notZeros . quotRems where
+    quotRems n = zipWith quotRem (n:map fst (quotRems n)) [1..]
+    notZeros (0,0) = False
+    notZeros _     = True
+
+fromFactoradic :: [Int] -> Int
+fromFactoradic = sum . zipWith (*) (map factorial [0..]) . reverse where
+    factorial n = product [1..n]
+    
+permutationsOfSize n = map (fromLehmerCode . zeroPad . toFactoradic) [0..] where
+    zeroPad digits = replicate (n - length digits) 0 ++ digits
+
+fromLehmerCode :: [Int] -> [Int]
+fromLehmerCode code = toList . fst $ foldl' cutAt ([], avail) code where
+    avail = Seq.fromList [0..length code-1]
+    cutAt (xs, avail) ix = (x:xs, before >< after) where 
+        (before, viewl -> x :< after) = Seq.splitAt ix avail
+
+-}
