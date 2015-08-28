@@ -1,3 +1,7 @@
+{-
+https://www.reddit.com/r/dailyprogrammer/comments/3chvxy/20150708_challenge_222_intermediate_simple_stream/
+-}
+
 import System.Random
 import Data.Bits
 
