@@ -1,3 +1,6 @@
+{-
+https://www.reddit.com/r/dailyprogrammer/comments/3hsgr0/08212015_challenge_228_hard_golomb_rulers/
+-}
 import Data.Function
 import Data.List
 import Data.Ord
