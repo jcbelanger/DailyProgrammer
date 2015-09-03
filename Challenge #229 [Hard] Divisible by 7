@@ -1,0 +1,62 @@
+{-
+https://www.reddit.com/r/dailyprogrammer/comments/3irzsi/20150828_challenge_229_hard_divisible_by_7/
+-}
+
+import Data.Array.Unboxed
+import Data.Array.IO
+import Data.List
+import Data.Char
+import Control.Monad
+
+type Remainder = Int
+type Digit = Int
+data DFA state alphabet = DFA
+    { start       :: state
+    , ends        :: [state]
+    , transitions :: Array (state, alphabet) state
+    } deriving (Eq, Show)
+
+alphabet = map snd . indices . transitions
+states = map fst . indices . transitions
+
+invertDFA dfa = dfa { transitions = array bounds' trans' }
+    where bounds' = bounds (transitions dfa)
+          trans' = [ ((to, letter), from)
+                   | (from, letter) <- indices (transitions dfa)
+                   , let to = (transitions dfa) ! (from, letter) ]
+
+productDFA a b = DFA startAB endsAB transitionsAB where
+    startAB = (start a, start b)
+    endsAB = [(endA, endB) | endA <- ends a, endB <- ends b]
+    alphabetAB = alphabet a `union` alphabet b
+    statesAB = [ (stateA, stateB) | stateA <- states a, stateB <- states b]
+    boundsAB = ((minimum statesAB, minimum alphabetAB),(maximum statesAB, maximum alphabetAB))
+    transitionsAB = array boundsAB [ ((fromAB, letter), (toA, toB)) 
+                                   | fromAB@(fromA,fromB) <- statesAB
+                                   , letter <- alphabetAB
+                                   , let toA = (transitions a) ! (fromA, letter) 
+                                   , let toB = (transitions b) ! (fromB, letter) ]
+
+divideBy :: Int -> DFA Remainder Digit
+divideBy divisor = DFA 0 [0] digitTransitions
+    where digitTransitions = array ((0,0), (divisor-1,9))
+                           [ ((remainder, digit), num `rem` divisor) 
+                           | remainder <- [0..divisor-1]
+                           , digit <- [0..9]
+                           , let num = 10 * remainder + digit ]
+                           
+challenge :: Int -> IO Integer
+challenge n = do
+    let (forwards, backwards) = (divideBy 7, invertDFA forwards)
+    let (both, invBoth) = (productDFA forwards backwards, invertDFA both)
+    sums <- newArray (bounds $ transitions both) 0 :: IO (IOArray ((Remainder,Remainder), Digit) Integer)
+    replicateM_ n $ do
+        sumEntries <- getAssocs sums
+        forM_ sumEntries $ \entry@((toState,digit),toSum) -> do
+            let fromState = (transitions invBoth) ! (toState,digit)
+            fromSum <- readArray sums (fromState, digit)
+            let toSum' = toSum + 10 * fromSum + fromIntegral digit
+            writeArray sums (toState,digit) toSum'
+    sum <$> forM [0..9] (\digit -> readArray sums ((0,0),digit))
+
+main = print =<< challenge . read =<< getContents
