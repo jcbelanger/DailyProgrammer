@@ -23,18 +23,14 @@ main = do
     interact $ \input ->
         let msg:n:knownLines = lines input
             known = Map.fromList [(x,x') | [x',x] <- knownLines]
-        in unlines $ catMaybes [decode enc msg | enc <- challenge known dict msg]
+            results = decode msg <$> sentenceEncodes dict known msg
+        in unlines (catMaybes results) 
 
-challenge :: Map Char Char -> Trie Char -> String -> [Map Char Char]
-challenge known dict = foldM (encodings dict) known . words
+sentenceEncodes :: Trie Char -> Map Char Char -> String -> [Map Char Char]
+sentenceEncodes dict known = foldM (wordEncodes dict) known . words
 
-decode :: Map Char Char -> String -> Maybe String
-decode enc = mapM step where 
-    step x | isAlpha x = Map.lookup x enc
-           | otherwise = Just x
-
-encodings :: Trie Char -> Map Char Char -> String -> [Map Char Char]
-encodings dict known = map fst . filter (leaf . snd) . foldM go (known, dict) where
+wordEncodes :: Trie Char -> Map Char Char -> String -> [Map Char Char]
+wordEncodes dict known = map fst . filter (leaf . snd) . foldM go (known, dict) where
     go (known, pos) x
         | isAlpha x = case Map.lookup x known of
             Just x' -> case Map.lookup x' (follow pos) of 
@@ -44,3 +40,8 @@ encodings dict known = map fst . filter (leaf . snd) . foldM go (known, dict) wh
                        | (x', pos') <- Map.assocs (follow pos)
                        , Map.notMember x' known ]
         | otherwise = [(known, pos)]
+
+decode :: String -> Map Char Char -> Maybe String
+decode msg encoding = mapM go msg where 
+    go x | isAlpha x = Map.lookup x encoding
+         | otherwise = Just x
