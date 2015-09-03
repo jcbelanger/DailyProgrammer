@@ -30,16 +30,18 @@ sentenceEncodes :: Trie Char -> Map Char Char -> String -> [Map Char Char]
 sentenceEncodes dict known = foldM (wordEncodes dict) known . words
 
 wordEncodes :: Trie Char -> Map Char Char -> String -> [Map Char Char]
-wordEncodes dict known = map fst . filter (leaf . snd) . foldM go (known, dict) where
-    go (known, pos) x
-        | isAlpha x = case Map.lookup x known of
-            Just x' -> case Map.lookup x' (follow pos) of 
-                Just pos' -> [(known, pos')]
-                Nothing   -> []
-            Nothing -> [ (Map.insert x x' known, pos')
-                       | (x', pos') <- Map.assocs (follow pos)
-                       , Map.notMember x' known ]
-        | otherwise = [(known, pos)]
+wordEncodes dict known = map fst . filter (leaf . snd) . foldM charEncodes (known, dict) where
+
+charEncodes :: (Map Char Char, Trie Char) -> Char -> [(Map Char Char, Trie Char)]
+charEncodes (known, pos) x
+    | isAlpha x = case Map.lookup x known of
+        Just x' -> case Map.lookup x' (follow pos) of 
+            Just pos' -> [(known, pos')]
+            Nothing   -> []
+        Nothing -> [ (Map.insert x x' known, pos')
+                   | (x', pos') <- Map.assocs (follow pos)
+                   , Map.notMember x' known ]
+    | otherwise = [(known, pos)]
 
 decode :: String -> Map Char Char -> Maybe String
 decode msg encoding = mapM go msg where 
