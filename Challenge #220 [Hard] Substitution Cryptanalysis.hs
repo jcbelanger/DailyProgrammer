@@ -7,10 +7,9 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Monoid
-import qualified Data.Foldable as F
 import Control.Monad
 
-data Trie a = Trie { leaf :: Bool, follow :: Map a (Trie a) }  
+data Trie a = Trie {leaf :: Bool, follow :: Map a (Trie a) }  
 
 instance Ord a => Monoid (Trie a) where
     mempty = Trie False Map.empty
@@ -20,7 +19,7 @@ fromList :: Ord a => [a] -> Trie a
 fromList = foldr (\x xs -> Trie False (Map.singleton x xs)) (Trie True Map.empty)
 
 main = do
-    dict <- fmap (F.foldMap fromList . lines) (readFile "words.txt")
+    dict <- foldMap fromList . lines <$> readFile "words.txt"
     interact $ \input ->
         let msg:n:knownLines = lines input
             known = Map.fromList [(x,x') | [x',x] <- knownLines]
