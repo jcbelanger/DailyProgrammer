@@ -26,16 +26,16 @@ main = do
         in unlines $ catMaybes [decode enc msg | enc <- challenge known dict msg]
 
 challenge :: Map Char Char -> Trie Char -> String -> [Map Char Char]
-challenge known dict = map fst . foldM (\(known, _) word -> encodings known dict word) (known, dict) . words
+challenge known dict = foldM (encodings dict) known . words
 
 decode :: Map Char Char -> String -> Maybe String
 decode enc = mapM step where 
     step x | isAlpha x = Map.lookup x enc
            | otherwise = Just x
 
-encodings :: Map Char Char -> Trie Char -> String -> [(Map Char Char, Trie Char)]
-encodings known dict = filter (leaf . snd) . foldM step (known, dict) where
-    step (known, pos) x
+encodings :: Trie Char -> Map Char Char -> String -> [Map Char Char]
+encodings dict known = map fst . filter (leaf . snd) . foldM go (known, dict) where
+    go (known, pos) x
         | isAlpha x = case Map.lookup x known of
             Just x' -> case Map.lookup x' (follow pos) of 
                 Just pos' -> [(known, pos')]
