@@ -14,4 +14,4 @@ main = interact $ \input ->
              , let vampire = product fangs
              , length (show vampire) == m
              , null (concatMap show fangs \\ show vampire)
-             , any ((/=0) . (`rem` 10)) fangs ]
+             , length (filter ((==0) . (`rem` 10)) fangs) <= 1 ]
