@@ -14,8 +14,8 @@ consonants = ['a'..'z'] \\ vowels
 toLetter :: MonadRandom m => Char -> m (Maybe Char)
 toLetter 'v' = Just <$> randFrom vowels
 toLetter 'c' = Just <$> randFrom consonants
-toLetter 'V' = Just <$> randFrom (map toUpper vowels)
-toLetter 'C' = Just <$> randFrom (map toUpper consonants)
+toLetter 'V' = Just . toUpper <$> randFrom vowels
+toLetter 'C' = Just . toUpper <$> randFrom consonants
 toLetter  _  = return Nothing
 
 randFrom :: MonadRandom m => [a] -> m a
