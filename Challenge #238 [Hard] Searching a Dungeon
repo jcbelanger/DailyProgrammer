@@ -58,8 +58,8 @@ bfs graph start = evalState (unfoldForestM_BF go start) Set.empty where
   go :: Vertex -> State (Set.Set Vertex) (Vertex, [Vertex])
   go x = do
     visited <- get
-    let follow = graph ! x
-    let new = Set.difference (Set.fromList follow) visited
+    let follow = Set.fromList (graph ! x)
+    let new = Set.difference follow visited
     put (Set.union visited new)
     return (x, Set.toList new)
 
