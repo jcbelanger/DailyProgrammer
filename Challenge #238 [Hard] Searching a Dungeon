@@ -5,8 +5,12 @@ https://www.reddit.com/r/dailyprogrammer/comments/3qtr01/20151030_challenge_238_
 import Control.Monad
 import Data.Function
 import Data.Graph
+import Data.Tree
 import Data.List
 import Data.Ord
+import Data.Array
+import Control.Monad.State
+import qualified Data.Set as Set
 
 type Point = (Int,Int,Int)
 
@@ -21,18 +25,17 @@ equating = on (==)
 readDung :: String -> [(Point,Char)]
 readDung input =
   [ ((x,y,z), cell)
-  | let levels = groupBy (equating null) (lines input)
-  , (z,level) <- zip [0..] (filter (not.null.head) levels)
+  | let dgLevels = groupBy (equating null) (lines input)
+  , (z,level) <- zip [0..] (filter (not.null.head) dgLevels)
   , (y,row)   <- zip [0..] level
   , (x,cell)  <- zip [0..] row]
 
-showDung, showLevel, showRow :: [(Point,Char)] -> String --assume sorted zyx
-showDung = unlines . map showLevel . groupBy (equating pz `on` fst)
-showLevel = unlines . map showRow . groupBy (equating py `on` fst)
-showRow = map snd
-
-sortZYX = sortBy (comparingZYX `on` fst)
-comparingZYX = mconcat (map comparing [pz,py,px])
+showDung :: [(Point,Char)] -> String
+showDung = dung . sortBy (comparingZYX `on` fst) where
+  comparingZYX = mconcat (map comparing [pz,py,px])
+  dung = unlines . map level . groupBy (equating pz `on` fst)
+  level = unlines . map row . groupBy (equating py `on` fst)
+  row = map snd
 
 neighbors :: Point -> Char -> [Point]
 neighbors (x,y,z) 'U' = (x,y,z-1) : planar (x,y,z)
@@ -50,15 +53,25 @@ pathToNode x (Node y ys)
 main :: IO ()
 main = interact (maybe "No solution" showDung . challenge . readDung)
 
-challenge :: [(Point,Char)]  -> Maybe [(Point,Char)]
+bfs :: Graph -> [Vertex] -> Forest Vertex
+bfs graph start = evalState (unfoldForestM_BF go start) Set.empty where
+  go :: Vertex -> State (Set.Set Vertex) (Vertex, [Vertex])
+  go x = do
+    visited <- get
+    let follow = graph ! x
+    let new = Set.difference (Set.fromList follow) visited
+    put (Set.union visited new)
+    return (x, Set.toList new)
+
+challenge :: [(Point,Char)] -> Maybe [(Point,Char)]
 challenge dung = do
   let dgEdges = [(cell, pos, neighbors pos cell) | (pos,cell) <- dung, cell /= '#']
   let (graph, fromVert, toVert) = graphFromEdges dgEdges
-  (start, 'S') <- find ((=='S').snd) dung
-  (goal,  'G') <- find ((=='G').snd) dung
+  (start, _) <- find ((=='S').snd) dung
+  (goal,  _) <- find ((=='G').snd) dung
   startV <- toVert start
   goalV  <- toVert goal
-  let vPaths = dfs graph [startV]
+  let vPaths = bfs graph [startV]
   soln <- msum $ map (pathToNode goalV) vPaths
-  let crumbs = [ (pos,'*') | (' ', pos, _) <- map fromVert soln]
-  return $ sortZYX $ unionBy (equating fst) crumbs dung
+  let crumbs = [ (pos, '*') | (' ', pos, _) <- map fromVert soln]
+  return $ unionBy (equating fst) crumbs dung
