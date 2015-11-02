@@ -73,5 +73,5 @@ challenge dung = do
   goalV  <- toVert goal
   let vPaths = bfs graph [startV]
   soln <- msum $ map (pathToNode goalV) vPaths
-  let crumbs = [ (pos, '*') | (' ', pos, _) <- map fromVert soln]
+  let crumbs = [(pos, '*') | (' ', pos, _) <- map fromVert soln]
   return $ unionBy (equating fst) crumbs dung
