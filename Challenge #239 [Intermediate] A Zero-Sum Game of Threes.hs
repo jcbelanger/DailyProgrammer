@@ -33,10 +33,10 @@ fastThrees = index threesTree
 data Tree a = Tree (Tree a) a (Tree a) deriving (Functor)
 
 index :: Tree a -> Integer -> a
-index (Tree _ m _) 0 = m
-index (Tree l _ r) n = case (n - 1) `quotRem` 2 of
-    (q,0) -> index l q
-    (q,1) -> index r q
+index (Tree _    val _    ) 0 = val
+index (Tree left _   right) n = case (n - 1) `quotRem` 2 of
+    (q,0) -> index left  q
+    (q,1) -> index right q
 
 nats :: Tree Integer
 nats = go 0 1 where
