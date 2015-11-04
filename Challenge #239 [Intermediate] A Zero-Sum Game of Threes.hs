@@ -1,7 +1,6 @@
 {-
 https://www.reddit.com/r/dailyprogrammer/comments/3rhzdj/20151104_challenge_239_intermediate_a_zerosum/
 -}
-
 {-# LANGUAGE DeriveFunctor, BangPatterns #-}
 
 import Data.List
@@ -25,8 +24,11 @@ threes f n =
   , after <- f q
   , dn <- nub [-r, (-r + 3) `rem` 3]]
 
+threesTree :: Tree [Threes]
+threesTree = threes fastThrees <$> nats
+
 fastThrees :: Integer -> [Threes]
-fastThrees = index (threes fastThrees <$> nats)
+fastThrees = index threesTree
 
 data Tree a = Tree (Tree a) a (Tree a) deriving (Functor)
 
@@ -38,5 +40,5 @@ index (Tree l _ r) n = case (n - 1) `quotRem` 2 of
 
 nats :: Tree Integer
 nats = go 0 1 where
-  go !n !s = Tree (go l s') n (go r s')
-    where (l, r, s') = (n+s, l+s, s*2)
+  go !nat !total = Tree (go left total') nat (go right total')
+    where (left, right, total') = (nat+total, left+total, total*2)
