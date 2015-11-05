@@ -18,6 +18,7 @@ showThrees = unlines . map (unwords . map show)
 
 threes :: (Integer -> [Threes]) -> Integer -> [Threes]
 threes _ 1 = [[[1]]]
+threes _ 2 = [[[2,1],[1]]]
 threes f n =
   [ [n,dn]:after
   | let (q, r) = n `quotRem` 3
