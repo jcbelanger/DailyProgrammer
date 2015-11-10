@@ -16,11 +16,11 @@ main = do
 typoglycemia :: RandomGen g => g -> String -> (String, g)
 typoglycemia gen xs = (IM.elems result, gen') where
   ixs = zip [0..] xs
-  (midAlpha, preserve) = case partition (isAlpha.snd) ixs of
-    (y:ys@(_:_), notAlpha) -> (init ys, y:last ys:notAlpha)
-    (alpha, notAlpha)      -> ([], ixs)
-  (midIx', gen') = fisherYates gen (map fst midAlpha)
-  mid' = zip midIx' (map snd midAlpha)
+  (mid, preserve) = case partition (isAlpha.snd) ixs of
+        (y:ys@(_:_), notAlpha) -> (init ys, y:last ys:notAlpha)
+        _                      -> ([], ixs)
+  (midIx', gen') = fisherYates gen (map fst mid)
+  mid' = zip midIx' (map snd mid)
   result = IM.unions (map IM.fromList [mid',preserve])
 
 fisherYates :: RandomGen g => g -> [a] -> ([a], g)
