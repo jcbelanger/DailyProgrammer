@@ -2,11 +2,11 @@
 https://www.reddit.com/r/dailyprogrammer/comments/3s4nyq/20151109_challenge_240_easy_typoglycemia/
 -}
 
-import Data.IntMap (IntMap, (!))
-import qualified Data.IntMap as IM
-import Data.Char
-import System.Random
-import Data.List
+import           Data.Char
+import           Data.IntMap   (IntMap, (!))
+import qualified Data.IntMap   as IM
+import           Data.List
+import           System.Random
 
 main :: IO ()
 main = do
