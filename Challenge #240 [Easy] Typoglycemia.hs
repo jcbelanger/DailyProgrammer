@@ -2,32 +2,34 @@
 https://www.reddit.com/r/dailyprogrammer/comments/3s4nyq/20151109_challenge_240_easy_typoglycemia/
 -}
 
+import           Control.Monad
+import           Control.Monad.Random
 import           Data.Char
-import           Data.IntMap   (IntMap, (!))
-import qualified Data.IntMap   as IM
+import           Data.IntMap          (IntMap, (!))
+import qualified Data.IntMap          as IM
 import           Data.List
-import           System.Random
 
 main :: IO ()
-main = do
-  gen <- getStdGen
-  interact (unwords . map (fst . typoglycemia gen) . words)
+main = putStrLn =<< evalRandIO . challenge =<< getContents
 
-typoglycemia :: RandomGen g => g -> String -> (String, g)
-typoglycemia gen xs = (IM.elems result, gen') where
-  ixs = zip [0..] xs
-  (mid, preserve) = case partition (isAlpha.snd) ixs of
-        (y:ys@(_:_), notAlpha) -> (init ys, y:last ys:notAlpha)
-        _                      -> ([], ixs)
-  (midIx', gen') = fisherYates gen (map fst mid)
-  mid' = zip midIx' (map snd mid)
-  result = IM.unions (map IM.fromList [mid',preserve])
+challenge :: MonadRandom m => String -> m String
+challenge = fmap unwords . mapM typoglycemia . words
 
-fisherYates :: RandomGen g => g -> [a] -> ([a], g)
-fisherYates gen []     = ([], gen)
-fisherYates gen (x:xs) = (IM.elems result, gen') where
-  (result, gen') = foldl swap (IM.singleton 0 x, gen) (zip [1..] xs)
+typoglycemia :: MonadRandom m => String -> m String
+typoglycemia xs = do
+  case partition (isAlpha.snd) (zip [0..] xs) of
+    (y:ys@(_:_), notAlpha) -> do
+      let (mid, preserve) = (init ys, y:last ys:notAlpha)
+      midIx' <- fisherYates (map fst mid)
+      let mid' = zip midIx' (map snd mid)
+      return $ map snd $ sortOn fst (preserve ++ mid')
+    _                      -> return xs
 
-swap :: RandomGen g => (IntMap a, g) -> (Int, a) -> (IntMap a, g)
-swap (xs, gen) (i, x) = (IM.insert j x (IM.insert i (xs ! j) xs), gen')
-  where (j, gen') = randomR (0, i) gen
+fisherYates :: MonadRandom m => [a] -> m [a]
+fisherYates []     = return []
+fisherYates (x:xs) = IM.elems <$> foldM swap (IM.singleton 0 x) (zip [1..] xs)
+
+swap ::  MonadRandom m => IntMap a -> (Int, a) -> m (IntMap a)
+swap xs (i, x) = do
+  j <- getRandomR (0, i)
+  return $ IM.insert j x (IM.insert i (xs ! j) xs)
