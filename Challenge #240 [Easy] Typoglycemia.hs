@@ -16,7 +16,7 @@ challenge :: MonadRandom m => String -> m String
 challenge = fmap unwords . mapM typoglycemia . words
 
 typoglycemia :: MonadRandom m => String -> m String
-typoglycemia xs = do
+typoglycemia xs =
   case partition (isAlpha.snd) (zip [0..] xs) of
     (y:ys@(_:_), notAlpha) -> do
       let (mid, preserve) = (init ys, y:last ys:notAlpha)
