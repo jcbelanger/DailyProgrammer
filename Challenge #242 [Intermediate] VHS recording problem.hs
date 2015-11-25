@@ -20,7 +20,7 @@ overlap :: TVShow -> TVShow -> Bool
 overlap a b = start a < end b && start b < end a
 
 challenge :: TVShow -> [TVShow] -> [TVShow]
-challenge must = maximumBy (comparing length) . map (nubBy overlap.(must:)) . permutations
+challenge must = maximumBy (comparing length) . map (nubBy overlap . (must:)) . permutations
 
 main :: IO ()
 main = interact $ \input ->
