@@ -66,7 +66,6 @@ parseQueryFile = many1 (parseIP <* endOfLine) <* endOfInput
 search1 :: IP -> [Range] -> Maybe Range
 search1 ip = find ((`inRange` ip) . ipRange)
 
---paralize = withStrategy (parListChunk 128 rdeepseq)
 challenge1 :: IP -> [Range] -> String
 challenge1 ip = maybe "<unknown>" (showResults ip) . search1 ip
 
