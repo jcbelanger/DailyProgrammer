@@ -46,6 +46,9 @@ toOctets w = [ fromIntegral (w `shiftR` 24)
 ipRange :: Range -> (IP,IP)
 ipRange = (,) <$> begin <*> end
 
+-- parseIPSlow :: Parser IP --needs backtracking to work!
+-- parseIPSlow = IP4 . fromOctets <$> decimal `sepBy1` char '.'
+
 parseIP :: Parser IP
 parseIP = do
   a <- decimal <* char '.'
@@ -74,21 +77,21 @@ challenge2 ip ranges = case filter ((`inRange` ip) . ipRange) ranges of
     []     -> "<unknown>"
     remain -> showResults ip $ minimumBy (comparing $ rangeSize . ipRange) remain
 
-search3 :: [IP] -> [Range] -> Map IP Range
-search3 ipList ranges
-  | (x:_) <- withStrategy (parBuffer 128 rdeepseq) $ dropWhile ((<S.size ips) . M.size) addRanges = x
-  | otherwise = M.empty
+search3 :: Set IP -> [Range] -> Map IP Range
+search3 ips ranges = case break ((<S.size ips) . M.size) sieves of
+  (smaller,exact:bigger) -> exact
+  (smaller@(_:_),[])     -> last smaller
+  _                      -> M.empty
  where
-  ips = S.fromList ipList :: Set IP
-  addRanges :: [Map IP Range]
-  addRanges = scanl' betweens M.empty $ sortOn (rangeSize . ipRange) ranges where
-  betweens :: Map IP Range -> Range -> Map IP Range
-  betweens bests cur = foldl' (updateMin cur) bests (matches ips cur) where
-  updateMin :: Range -> Map IP Range -> IP -> Map IP Range
-  updateMin cur bests ip = M.insertWith min ip cur bests
+  sieves :: [Map IP Range]
+  sieves = scanl' matchIPs M.empty $ sortOn (rangeSize . ipRange) ranges where
+  matchIPs :: Map IP Range -> Range -> Map IP Range
+  matchIPs bests rng = foldl' (logMatches rng) bests (matches ips rng) where
+  logMatches :: Range -> Map IP Range -> IP -> Map IP Range
+  logMatches match bests ip = M.insertWith min ip match bests --Can probably insert instead of min
 
 matches :: Set IP -> Range -> Set IP
-matches ips r = S.unions [between, a', b'] where
+matches ips r = S.unions [between, a', b'] where -- largest first for efficiency
   (a,b) = ipRange r
   (_      , startMember, gt) = S.splitMember a ips
   (between, endMember  , _ ) = S.splitMember b gt
@@ -97,7 +100,8 @@ matches ips r = S.unions [between, a', b'] where
 
 challenge3 :: [IP] -> [Range] -> [String]
 challenge3 ips ranges = zipWith (maybe "<unknown>" . showResults) ips pairedRanges where
-  pairedRanges = map (`M.lookup` search3 ips ranges) ips
+  pairedRanges = map (`M.lookup` results) ips
+  results = search3 (S.fromList ips) ranges
 
 showResults :: IP -> Range -> String
 showResults ip best = show ip ++ " " ++ T.unpack (name best)
@@ -106,7 +110,7 @@ main :: IO ()
 main = do
   Right ranges <- parseOnly parseRangeFile <$> TIO.readFile "ips1mil.txt"
   Right ips    <- parseOnly parseQueryFile <$> TIO.readFile "query10k.txt"
-  let r = sortOn (rangeSize . ipRange) ranges
+  -- let r = sortOn (rangeSize . ipRange) ranges
   -- mapM_ putStrLn $ withStrategy (parBuffer 128 rdeepseq) $ map (`challenge1` r) ips
   -- mapM_ putStrLn $ withStrategy (parBuffer 128 rdeepseq) $ map (`challenge2` ranges) ips
   mapM_ putStrLn (challenge3 ips ranges)
