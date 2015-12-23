@@ -1,3 +1,7 @@
+{-
+https://www.reddit.com/r/dailyprogrammer/comments/3xye4g/20151223_challenge_246_intermediate_letter_splits/
+-}
+
 {-# LANGUAGE RecursiveDo #-}
 
 import           Control.Applicative
