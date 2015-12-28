@@ -30,6 +30,5 @@ solutions input =
                             | (fid,family) <- zip [1..] (lines input)
                             , (nid,name)   <- zip [1..] (words family) ]
   , let (ids, names) = unzip attempt
-  , let familyChanges = map fst ids
-  , let peopleChanges = scanl' (flip S.insert) S.empty ids
-  , and $ nextWith (/=) $ zip familyChanges peopleChanges ]
+  , and $ nextWith (/=) $ map fst ids
+  , and $ nextWith (/=) $ scanl' (flip S.insert) S.empty ids ]
