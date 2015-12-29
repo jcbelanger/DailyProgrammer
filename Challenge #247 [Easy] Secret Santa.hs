@@ -30,6 +30,6 @@ challenge families = do
 
 splits :: Eq a => [[a]] -> M.Map Int ([[a]],[[a]])
 splits xss = foldl' transferLeft (M.singleton 0 ([],xss)) xss where
-  transferLeft prev cur = M.union prev (nextSplit cur prev)
-  nextSplit cur = M.mapKeysMonotonic (+length cur) . M.map (toLeft cur)
-  toLeft x (as,bs) = (x:as, delete x bs)
+  transferLeft prev xs = M.union prev (nextSplit xs prev)
+  nextSplit xs = M.mapKeysMonotonic (+length xs) . M.map (toLeft xs)
+  toLeft xs (ass,bss) = (xs:ass, delete xs bss)
