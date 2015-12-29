@@ -21,12 +21,13 @@ showResults xs = unlines [a++" -> "++b | (a,b) <- zip xs (drop 1 $ cycle xs)]
 challenge :: MonadRandom m => [[String]] -> m [String]
 challenge families = do
   families' <- shuffleM families
-  let total = sum (map length families)
-      Just (_,(xs,ys)) = M.lookupLE (total `div` 2) (splits families')
-      --TODO allow inter-family-gifting when no perfect split
+  let half = sum (map length families) `div` 2
+      Just (leftSize,(xs,ys)) = M.lookupLE half (splits families')
   xs' <- shuffleM xs
   ys' <- shuffleM ys
-  return $ concat [[x,y] | (x,y) <- zip (concat xs') (concat ys')]
+  let extra = drop leftSize (concat ys')
+      path = concat [[x,y] | (x,y) <- zip (concat xs') (concat ys')]
+  return (extra ++ path)
 
 splits :: Eq a => [[a]] -> M.Map Int ([[a]],[[a]])
 splits xss = foldl' transferLeft (M.singleton 0 ([],xss)) xss where
