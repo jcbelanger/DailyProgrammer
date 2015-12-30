@@ -19,14 +19,17 @@ showResults :: [String] -> String
 showResults xs = unlines [a++" -> "++b | (a,b) <- zip xs (drop 1 $ cycle xs)]
 
 challenge :: MonadRandom m => [[String]] -> m [String]
+challenge [family] = shuffleM family
 challenge families = do
   families' <- shuffleM families
   let half = sum (map length families) `div` 2
-      Just (leftSize,(xs,ys)) = M.lookupLE half (splits families')
-  xs' <- shuffleM xs
-  ys' <- shuffleM ys
-  let extra = drop leftSize (concat ys')
-      path = concat [[x,y] | (x,y) <- zip (concat xs') (concat ys')]
+      Just (leftSize,(xss,yss)) = M.lookupLE half (splits families')
+  xs <- shuffleM (concat xss)
+  ys <- if half == leftSize
+        then shuffleM (concat yss)
+        else challenge yss
+  let extra = drop leftSize ys
+      path = concat [[x,y] | (x,y) <- zip xs ys]
   return (extra ++ path)
 
 splits :: Eq a => [[a]] -> M.Map Int ([[a]],[[a]])
