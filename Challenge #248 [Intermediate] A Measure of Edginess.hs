@@ -10,6 +10,7 @@ https://www.reddit.com/r/dailyprogrammer/comments/3zqiiq/20160106_challenge_248_
 import Control.Monad
 import Control.Applicative
 import Data.Array.Repa                     as Repa
+import Data.Array.Repa.Repr.ByteString
 import Data.Array.Repa.Stencil
 import Data.Array.Repa.Stencil.Dim2
 import Data.Array.Repa.Operators.Traversal
@@ -23,7 +24,7 @@ type Color = (Word8,Word8,Word8)
 
 main :: IO ()
 main = do
-  Right img <- parseOnly ppmP3 <$> BS.getContents
+  Right img <- parseOnly ppm <$> BS.getContents
   img' <- computeUnboxedP $ toPpmBytes (sobel img)
   BSC8.putStrLn (toPpmP3 img')
 
@@ -36,6 +37,23 @@ toPpmP3 pixels = BSC8.unwords [format,dim,maxVal,bytes,"\n"]
     maxVal = "255"
     bytes = BSC8.unwords (BSC8.pack . show <$> toList pixels)
 
+ppm :: Parser (Array D DIM2 Color)
+ppm = choice [ppmP3,ppmP6]
+
+ppmP6 :: Parser (Array D DIM2 Color)
+ppmP6 = do
+  many ppmWhiteSpace
+  string "P6"
+  some ppmWhiteSpace
+  cols <- decimal
+  some ppmWhiteSpace
+  rows <- decimal
+  some ppmWhiteSpace
+  string "255" --only support word8 atm
+  some ppmWhiteSpace
+  bytes <- Atto.takeTill isEndOfLine
+  return (fromPpmBytes rows cols bytes)
+
 ppmP3 :: Parser (Array D DIM2 Color)
 ppmP3 = do
   many ppmWhiteSpace
@@ -46,10 +64,10 @@ ppmP3 = do
   rows <- decimal
   some ppmWhiteSpace
   string "255" --only support word8 atm
-  ppmWhiteSpace
+  some ppmWhiteSpace
   bytes <- decimal `sepBy` some ppmWhiteSpace
   many ppmWhiteSpace
-  return (fromPpmBytes rows cols bytes)
+  return (fromPpmBytes rows cols (BS.pack bytes))
 
 ppmWhiteSpace :: Parser ()
 ppmWhiteSpace = void (Atto.takeWhile1 isSpace_w8 <|> ppmComment)
@@ -57,9 +75,9 @@ ppmWhiteSpace = void (Atto.takeWhile1 isSpace_w8 <|> ppmComment)
 ppmComment :: Parser ByteString
 ppmComment = char '#' *> Atto.takeWhile (not . isEndOfLine) <* optional endOfLine
 
-fromPpmBytes :: Int -> Int -> [Word8] -> Array D DIM2 Color
+fromPpmBytes :: Int -> Int -> ByteString -> Array D DIM2 Color
 fromPpmBytes rows cols bytes =
-  let byteArr = fromListUnboxed (Z :. rows :. 3*cols) bytes
+  let byteArr = fromByteString (Z :. rows :. 3*cols) bytes
 
       toColor source (Z :. row :. col) = (r,g,b) where
         [r,g,b] = [source (Z :. row :. 3*col + offset) | offset <- [0,1,2]]
