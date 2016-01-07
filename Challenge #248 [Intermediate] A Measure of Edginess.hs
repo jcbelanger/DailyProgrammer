@@ -28,11 +28,11 @@ main = do
   BSC8.putStrLn (toPpmP3 img')
 
 toPpmP3 :: Source r Word8 => Array r DIM2 Word8 -> ByteString
-toPpmP3 pixels = BSC8.unwords [format,colsTxt,rowsTxt,maxVal,bytes,"\n"]
+toPpmP3 pixels = BSC8.unwords [format,dim,maxVal,bytes,"\n"]
   where
     format = "P3"
     (Z :. rows :. cols) = extent pixels
-    [colsTxt,rowsTxt] = BSC8.pack . show <$> [cols `quot` 3,rows]
+    dim = BSC8.unwords (BSC8.pack . show <$> [cols `quot` 3, rows])
     maxVal = "255"
     bytes = BSC8.unwords (BSC8.pack . show <$> toList pixels)
 
@@ -62,7 +62,7 @@ fromPpmBytes rows cols bytes =
   let byteArr = fromListUnboxed (Z :. rows :. 3*cols) bytes
 
       toColor source (Z :. row :. col) = (r,g,b) where
-        [r,g,b] = [source (Z :. row :. col + offset) | offset <- [0,1,2]]
+        [r,g,b] = [source (Z :. row :. 3*col + offset) | offset <- [0,1,2]]
 
   in unsafeTraverse byteArr (const $ Z :. rows :. cols) toColor
 
@@ -77,7 +77,8 @@ toPpmBytes colors =
   in unsafeTraverse colors (const $ Z :. rows :. 3*cols) toByte
 
 toGray :: Color -> Double
-toGray (r,g,b) = fromIntegral (r + g + b) / 3
+toGray (r8,g8,b8) =  0.2126*r + 0.7152*g + 0.0722*b
+  where [r,g,b] = fromIntegral <$> [r8,g8,b8]
 
 fromGray :: Double -> Color
 fromGray y = let x = round y in (x,x,x)
@@ -94,6 +95,6 @@ sobel img =
                            0  0  0
                            1  2  1 |]
 
-      [hor2,vert2] = Repa.map (^2) . forStencil2 BoundClamp grey <$> [hCoeff,vCoeff]
+      [hor2,vert2] = Repa.map (\x -> x*x) . forStencil2 BoundClamp grey <$> [hCoeff,vCoeff]
 
   in Repa.map (fromGray . sqrt) (Repa.zipWith (+) hor2 vert2)
