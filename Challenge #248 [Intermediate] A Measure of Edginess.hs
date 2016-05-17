@@ -76,7 +76,7 @@ ppmWhiteSpace = void (Atto.takeWhile1 isSpace_w8 <|> ppmComment)
 ppmComment :: Parser ByteString
 ppmComment = char '#' *> Atto.takeWhile (not . isEndOfLine) <* optional endOfLine
 
-fromPpmBytes ::    Monad m => Int -> Int -> ByteString -> m (Array U DIM2 Color)
+fromPpmBytes :: Monad m => Int -> Int -> ByteString -> m (Array U DIM2 Color)
 fromPpmBytes rows cols bytes =
     let byteArr = fromByteString (Z :. rows :. 3*cols) bytes
 
