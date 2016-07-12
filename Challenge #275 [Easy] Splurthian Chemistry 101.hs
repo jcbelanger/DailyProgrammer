@@ -2,10 +2,9 @@
 https://www.reddit.com/r/dailyprogrammer/comments/4savyr/20160711_challenge_275_easy_splurthian_chemistry/
 -}
 
-module Challenge where
-
 import Data.Char
 import Data.List
+import Data.List.NonEmpty (nonEmpty)
 
 type Element = String
 type Symbol = String
@@ -16,8 +15,8 @@ challenge = flip elem . splurth
 splurth :: Element -> [Symbol]
 splurth element = [[toUpper x, toLower y] | x:xs <- tails element, y <- xs]
 
-bonus1 :: Element -> Symbol
-bonus1 = minimum . splurth
+bonus1 :: Element -> Maybe Symbol
+bonus1 = fmap minimum . nonEmpty . splurth
 
 bonus2 :: Element -> Int
 bonus2 = length . nub . splurth
