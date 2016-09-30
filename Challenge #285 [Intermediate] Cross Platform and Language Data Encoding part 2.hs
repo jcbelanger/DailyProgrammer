@@ -1,7 +1,6 @@
 {-
 https://www.reddit.com/r/dailyprogrammer/comments/54wihd/20160928_challenge_285_intermediate_cross/
 -}
-
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
@@ -13,12 +12,11 @@ import           GHC.Generics
 newtype FixedWidthDate = FixedWidthDate Day deriving (Enum, Eq, Ord, Read, Show, ParseTime, FormatTime)
 
 instance Binary FixedWidthDate where
-    put (FixedWidthDate date) =
+    put (FixedWidthDate date) = do
         let (year, month, day) = toGregorian date
-            bytes = [ fromInteger (year - 1900)
-                    , fromIntegral month
-                    , fromIntegral day ]
-        in mapM_ putWord8 bytes
+        putWord8 $ fromInteger (year - 1900)
+        putWord8 $ fromIntegral month
+        putWord8 $ fromIntegral day
     get = do
         year  <- fromIntegral <$> getWord8
         month <- fromIntegral <$> getWord8
