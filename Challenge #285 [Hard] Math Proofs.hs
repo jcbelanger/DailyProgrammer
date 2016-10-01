@@ -10,12 +10,10 @@ import           Data.Char
 import           Data.List
 import           Data.Map                  (Map)
 import qualified Data.Map                  as Map
-import           Data.Ratio
 import           Data.Text                 (Text)
 import qualified Data.Text                 as Text
 import qualified Data.Text.IO              as TIO
 import           Text.Parser.Combinators   (chainl1)
-import           Text.Printf
 
 type Equation = (Expr, Expr)
 data Expr
@@ -56,8 +54,8 @@ mulFn = Mul <$ optional (char '*')
 divFn = Div <$ char '/'
 
 type Variable = Char
-type Exponent = Rational
-type Coefficient = Rational
+type Exponent = Double
+type Coefficient = Double
 type Terms = Map (Map Variable Exponent) Coefficient
 newtype Polynomial = Polynomial { terms :: Terms } deriving (Eq, Ord)
 
@@ -66,7 +64,7 @@ poly :: Terms -> Polynomial
 poly = Polynomial . Map.mapKeys (Map.filter (/=0)) . Map.filter (/=0)
 
 fromExpr :: Expr -> Polynomial
-fromExpr (Lit a)   = poly $ Map.singleton Map.empty (toRational a)
+fromExpr (Lit a)   = poly $ Map.singleton Map.empty  a
 fromExpr (Var a)   = poly $ Map.singleton (Map.singleton a 1) 1
 fromExpr (Neg a)   = negateP (fromExpr a)
 fromExpr (Add a b) = fromExpr a `addP` fromExpr b
@@ -78,7 +76,7 @@ negateP :: Polynomial -> Polynomial
 negateP = poly . Map.map negate . terms
 
 fromDenominator :: Polynomial -> Polynomial
-fromDenominator = poly . Map.mapKeys (Map.map negate) . Map.map (1/) . terms
+fromDenominator = poly . Map.mapKeys (Map.map negate) . Map.map recip . terms
 
 addP :: Polynomial -> Polynomial -> Polynomial
 addP (Polynomial a) (Polynomial b) = poly $ Map.unionWith (+) a b
