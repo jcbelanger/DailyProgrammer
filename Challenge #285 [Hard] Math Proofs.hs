@@ -1,32 +1,30 @@
 {-
 https://www.reddit.com/r/dailyprogrammer/comments/557wyy/20160930_challenge_285_hard_math_proofs/
 -}
-{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TupleSections              #-}
 
 module Lib where
 
 import           Control.Applicative
 import           Control.Monad
-import           Control.Monad.Writer
 import           Control.Monad.State
+import           Control.Monad.Writer
 import           Data.Attoparsec.Text
 import           Data.Char
-import           Data.Function
 import           Data.List
-import           Data.Map                  (Map)
-import qualified Data.Map                  as Map
-import           Data.Text                 (Text)
-import qualified Data.Text                 as Text
-import qualified Data.Text.IO              as TIO
-import           Text.Parser.Combinators   (chainl1)
-import           Text.Printf
+import           Data.Map                (Map)
+import qualified Data.Map                as Map
+import           Data.Text               (Text)
+import qualified Data.Text               as Text
+import qualified Data.Text.IO            as TIO
+import           Text.Parser.Combinators (chainl1)
 
 data Equation = Equation Expr Expr deriving (Eq, Ord)
 
 instance Show Equation where
-    show (Equation a b) = printf "%s=%s" (show a) (show b)
+    show (Equation a b) = show a ++ "=" ++ show b
 
 data Expr
     = Lit Double
@@ -36,20 +34,26 @@ data Expr
     | Sub Expr Expr
     | Mul Expr Expr
     | Div Expr Expr
-    | Poly Polynomial --only used for printint
-    | PolyR PolyRational --only used for printing
+    | Poly Polynomial    --only used for easier printint
+    | PolyR PolyRational --only used for easier printing
     deriving (Eq, Ord)
 
 instance Show Expr where
     show (Lit x)   = showDouble x
     show (Var x)   = [x]
-    show (Neg x)   = printf "-(%s)" (show x)
-    show (Add a b) = printf "(%s+%s)" (show a) (show b)
-    show (Sub a b) = printf "(%s-%s)" (show a) (show b)
-    show (Mul a b) = printf "%s*%s" (show a) (show b)
-    show (Div a b) = printf "%s/%s" (show a) (show b)
-    show (Poly a)  = printf "(%s)" (show a)
-    show (PolyR a) = printf "(%s)" (show a)
+    show (Neg x)   = '-':parenExpr x
+    show (Add a b) = parenExpr a ++ "+" ++ parenExpr b
+    show (Sub a b) = parenExpr a ++ "-" ++ parenExpr b
+    show (Mul a b) = parenExpr a ++ "*" ++ parenExpr b
+    show (Div a b) = parenExpr a ++ "/" ++ parenExpr b
+    show (Poly a)  = show a
+    show (PolyR a) = show a
+
+parenExpr :: Expr -> String
+parenExpr x@(Lit _) = show x
+parenExpr x@(Var _) = show x
+parenExpr (Poly p)  = parenPoly p
+parenExpr x         = "(" ++ show x ++ ")"
 
 showDouble :: Double -> String
 showDouble x | fromIntegral (floor x) == x = show (floor x)
@@ -98,16 +102,19 @@ type Coefficient = Double
 newtype Polynomial = Polynomial { terms :: Map (Map Variable Exponent) Coefficient } deriving (Eq, Ord)
 
 instance Show Polynomial where
-    show (Polynomial ts) = intercalate "+"
-        [ if coef == 1 && t /= []
-          then concat t
-          else showDouble coef ++ concat t
-        | (varPows, coef) <- Map.toList ts
-        , let t = [ if pow == 1
-                    then [var]
-                    else var:"^"++showDouble pow
-                  | (var,pow) <- Map.toList varPows ]]
+    show (Polynomial ts) =
+        let showCoef coef []   = showDouble coef
+            showCoef 1    term = term
+            showCoef coef term = showDouble coef ++ term
+            showExp (var,  1) = [var]
+            showExp (var,pow) = var:"^"++showDouble pow
+            showVarPows varPows = concatMap showExp (Map.toList varPows)
+            terms = [ showCoef coef (showVarPows varPows) | (varPows, coef) <- Map.toList ts]
+        in intercalate "+" terms
 
+parenPoly :: Polynomial -> String
+parenPoly p | Map.size (terms p) == 1 = "(" ++ show p ++ ")"
+            | otherwise               = show p
 
 litP :: Coefficient -> Polynomial
 litP = Polynomial . Map.singleton Map.empty
@@ -128,7 +135,7 @@ data PolyRational = PolyRational Polynomial Polynomial deriving (Eq, Ord)
 
 instance Show PolyRational where
     show (PolyRational a 1) = show a
-    show (PolyRational a b) = show a ++ "/" ++ show b
+    show (PolyRational a b) = parenPoly a ++ "/" ++ parenPoly b
 
 instance Num PolyRational where
     fromInteger a = PolyRational (fromInteger a) 1
@@ -144,7 +151,7 @@ type Proof s = Writer [(s,String)]
 stepCensor :: (s -> s') -> Proof s a -> Proof s' a
 stepCensor f = mapWriter $ \(x,steps) -> (x, [(f stmt, reason) | (stmt, reason) <- steps])
 
-tellStep :: Eq s => s -> String -> Proof s ()
+tellStep :: s -> String -> Proof s ()
 tellStep stmt reason = tell [(stmt, reason)]
 
 fromExpr :: Expr -> Proof Expr PolyRational
@@ -185,7 +192,7 @@ fromExpr (Div a b) = do
     let withA' = Div (PolyR a')
     b' <- stepCensor withA' (fromExpr b)
     let ret = a' / b'
-    tellStep (PolyR ret) "Divide Fraction"
+    tellStep (PolyR ret) "Divide Terms"
     return ret
 
 equivalent :: Equation -> Proof Equation Bool
@@ -196,7 +203,7 @@ equivalent eqn@(Equation l r) = do
     let withL' = Equation (PolyR l')
     r'@(PolyRational c d) <- stepCensor withL' (fromExpr r)
     let (ad,bc) = (a*d,b*c)
-    when (b /= 1 && d /= 1) $ tellStep (Equation (Poly ad) (Poly bc)) "Cross Product"
+    unless (b == 1 && c == 1) $ tellStep (Equation (Poly ad) (Poly bc)) "Cross Product"
     let withBC x = Equation x (Poly bc)
     ad' <- stepCensor withBC (trivialTerms ad)
     let withAD' = Equation (Poly ad')
@@ -205,7 +212,7 @@ equivalent eqn@(Equation l r) = do
 
 zeroCoef, zeroExp :: Polynomial -> Polynomial
 zeroCoef = Polynomial . Map.filter (/=0) . terms
-zeroExp  = Polynomial . Map.mapKeys (Map.filter (/=0)) . terms
+zeroExp = Polynomial . Map.mapKeys (Map.filter (/=0)) . terms
 
 trivialTerms :: Polynomial -> Proof Expr Polynomial
 trivialTerms a = do
@@ -219,7 +226,7 @@ showProof :: Proof Equation Bool -> String
 showProof proof =
     let (equiv, steps) = runWriter proof
         result = if equiv then "Equivilent:" else "Not Equivilent:"
-    in unlines $ result:[printf "%s\t\t%s" (show stmt) reason | (stmt, reason) <- steps]
+    in unlines $ result:[show stmt ++ "\t\t" ++ reason | (stmt, reason) <- steps]
 
 main :: IO ()
 main = interact $ either error (showProof . equivalent) . parseEquation . Text.pack
