@@ -5,8 +5,6 @@ https://www.reddit.com/r/dailyprogrammer/comments/557wyy/20160930_challenge_285_
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TupleSections              #-}
 
-module Lib where
-
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.State
