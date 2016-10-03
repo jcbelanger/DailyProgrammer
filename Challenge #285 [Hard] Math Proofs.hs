@@ -5,6 +5,8 @@ https://www.reddit.com/r/dailyprogrammer/comments/557wyy/20160930_challenge_285_
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TupleSections              #-}
 
+module Lib where
+
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.State
@@ -111,8 +113,8 @@ instance Show Polynomial where
         in intercalate "+" terms
 
 parenPoly :: Polynomial -> String
-parenPoly p | Map.size (terms p) == 1 = "(" ++ show p ++ ")"
-            | otherwise               = show p
+parenPoly p | Map.size (terms p) > 1 = "(" ++ show p ++ ")"
+            | otherwise              =  show p
 
 litP :: Coefficient -> Polynomial
 litP = Polynomial . Map.singleton Map.empty
@@ -132,7 +134,6 @@ instance Num Polynomial where
 data PolyRational = PolyRational Polynomial Polynomial deriving (Eq, Ord)
 
 instance Show PolyRational where
-    show (PolyRational a 1) = show a
     show (PolyRational a b) = parenPoly a ++ "/" ++ parenPoly b
 
 instance Num PolyRational where
@@ -153,8 +154,14 @@ tellStep :: s -> String -> Proof s ()
 tellStep stmt reason = tell [(stmt, reason)]
 
 fromExpr :: Expr -> Proof Expr PolyRational
-fromExpr (Lit a) = return $ PolyRational (litP a) 1
-fromExpr (Var a) = return $ PolyRational (varP a) 1
+fromExpr (Lit a) = do
+    let ret = PolyRational (litP a) 1
+    tellStep (PolyR ret) "To rational"
+    return ret
+fromExpr (Var a) = do
+    let ret = PolyRational (varP a) 1
+    tellStep (PolyR ret) "To rational"
+    return ret
 fromExpr (Neg a) = do
     a' <- stepCensor Neg (fromExpr a)
     let ret = negate a'
@@ -201,7 +208,7 @@ equivalent eqn@(Equation l r) = do
     let withL' = Equation (PolyR l')
     r'@(PolyRational c d) <- stepCensor withL' (fromExpr r)
     let (ad,bc) = (a*d,b*c)
-    unless (b == 1 && c == 1) $ tellStep (Equation (Poly ad) (Poly bc)) "Cross Product"
+    tellStep (Equation (Poly ad) (Poly bc)) "Cross Product"
     let withBC x = Equation x (Poly bc)
     ad' <- stepCensor withBC (trivialTerms ad)
     let withAD' = Equation (Poly ad')
