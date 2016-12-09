@@ -1,0 +1,153 @@
+{-
+https://www.reddit.com/r/dailyprogrammer/comments/5h40ml/20161207_challenge_294_intermediate_rack/
+-}
+
+{-# LANGUAGE DeriveAnyClass   #-}
+{-# LANGUAGE DeriveGeneric    #-}
+
+import           Control.Concurrent.STM
+import           Data.Foldable
+import           Data.Hashable
+import           Data.HashMap.Lazy      (HashMap)
+import qualified Data.HashMap.Lazy      as HashMap
+import           Data.MultiSet          (MultiSet)
+import qualified Data.MultiSet          as MultiSet
+import           Data.Ord
+import           GHC.Generics           (Generic)
+
+
+data Trie a = Trie
+    { leaf   :: !Bool
+    , follow :: HashMap a (Trie a)
+    } deriving (Eq, Show)
+
+empty :: Trie a
+empty = Trie False HashMap.empty
+
+intersect, union :: (Eq a, Hashable a) => Trie a -> Trie a -> Trie a
+intersect (Trie l1 f1) (Trie l2 f2) = Trie (l1 && l2) (HashMap.intersectionWith intersect f1 f2)
+union (Trie l1 f1) (Trie l2 f2) = Trie (l1 || l2) (HashMap.unionWith union f1 f2)
+
+allLeafs :: (Eq a, Hashable a) => Trie a -> Trie a
+allLeafs (Trie _ xs) = Trie True (HashMap.map allLeafs xs)
+
+instance (Eq a, Hashable a) => Monoid (Trie a) where
+    mempty = empty
+    mappend = union
+
+fromList :: (Traversable t, Hashable a) => t a -> Trie a
+fromList = foldr' cons end
+  where
+    end = Trie True HashMap.empty
+    cons x xs = Trie False (HashMap.singleton x xs)
+
+toLists :: Trie a -> [[a]]
+toLists t
+    | leaf t    = []:after
+    | otherwise = after
+    where after = [x:xs | (x,xss) <- HashMap.toList (follow t), xs <- toLists xss]
+
+data Tile
+    = Blank
+    | Letter !Char
+    deriving (Show, Generic, Hashable)
+
+toString :: [Tile] -> String
+toString xs = [x | Letter x <- xs]
+
+instance Eq Tile where
+    Letter a == Letter b = a == b
+    _        == _        = True
+
+toTile :: Char -> Tile
+toTile '?' = Blank
+toTile  x  = Letter x
+
+tilePoints :: HashMap Tile Int
+tilePoints = HashMap.fromList (zip azTiles azPoints)
+  where
+    azTiles = map Letter ['a'..'z']
+    azPoints = [1,3,3,2,1,4,2,4,1,8,5,1,3,1,1,3,10,1,1,1,1,4,4,8,4,10]
+
+tileScore :: Tile -> Int
+tileScore x = HashMap.lookupDefault 0 x tilePoints
+
+handScore :: [Tile] -> Int
+handScore = sum . zipWith (*) [1..] . map tileScore
+
+--faster version of: maximumBy (comparing f)
+maximumOn :: (Traversable t, Ord b) => (a -> b) -> t a -> a
+maximumOn f xs = fst $ maximumBy (comparing snd) [(x, f x) | x <- toList xs]
+
+--faster version of: nub . permutations
+nubPerms :: Ord a => [a] -> [[a]]
+nubPerms = go . MultiSet.fromList
+  where
+    go remain
+        | MultiSet.null remain = [[]]
+        | otherwise            =
+            [ x:xs
+            | x <- MultiSet.distinctElems remain
+            , xs <- go (MultiSet.delete x remain) ]
+
+
+main :: IO ()
+main = do
+    let tileTrie = foldMap (fromList . map toTile)
+    dict <- tileTrie . lines <$> readFile "enable1.txt"
+    let hand = (allLeafs . tileTrie . nubPerms) "quickbrownfox??"
+        valid = intersect dict hand
+    print $ toString $ maximumOn handScore $ toLists valid
+
+
+data Tile
+    = Blank
+    | Letter !Char
+    deriving (Show, Generic, Hashable)
+
+toString :: [Tile] -> String
+toString xs = [x | Letter x <- xs]
+
+instance Eq Tile where
+    Letter a == Letter b = a == b
+    _        == _        = True
+
+toTile :: Char -> Tile
+toTile '?' = Blank
+toTile  x  = Letter x
+
+tilePoints :: HashMap Tile Int
+tilePoints = HashMap.fromList (zip azTiles azPoints)
+  where
+    azTiles = map Letter ['a'..'z']
+    azPoints = [1,3,3,2,1,4,2,4,1,8,5,1,3,1,1,3,10,1,1,1,1,4,4,8,4,10]
+
+tileScore :: Tile -> Int
+tileScore x = HashMap.lookupDefault 0 x tilePoints
+
+handScore :: [Tile] -> Int
+handScore = sum . zipWith (*) [1..] . map tileScore
+
+--faster version of: maximumBy (comparing f)
+maximumOn :: (Traversable t, Ord b) => (a -> b) -> t a -> a
+maximumOn f xs = fst $ maximumBy (comparing snd) [(x, f x) | x <- toList xs]
+
+--faster version of: nub . permutations
+nubPerms :: Ord a => [a] -> [[a]]
+nubPerms = go . MultiSet.fromList
+  where
+    go remain
+        | MultiSet.null remain = [[]]
+        | otherwise            =
+            [ x:xs
+            | x <- MultiSet.distinctElems remain
+            , xs <- go (MultiSet.delete x remain) ]
+
+
+main :: IO ()
+main = do
+    let tileTrie = foldMap (fromList . map toTile)
+    dict <- tileTrie . lines <$> readFile "enable1.txt"
+    let hand = (allLeafs . tileTrie . nubPerms) "quickbrownfox??"
+        valid = intersect dict hand
+    print $ toString $ maximumOn handScore $ toLists valid
