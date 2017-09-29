@@ -3,6 +3,8 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RecordWildCards            #-}
 
+module Lib where
+
 import           Control.Applicative
 import qualified Control.Foldl                    as F
 import qualified Data.Attoparsec.ByteString.Char8 as A8
@@ -94,11 +96,15 @@ newtype DayMMDDYY = DayMMDDYY { toDay :: Day } deriving (Eq, Ord, Show, ParseTim
 instance Csv.FromField DayMMDDYY where
   parseField = parseTimeM False defaultTimeLocale "%-m/%-d/%Y" . B8.unpack
 
-main :: IO ()
-main = IO.withFile "Iowa_Liquor_Sales.csv" IO.ReadMode $ \h -> do
-    let invoices = parseInvoice (PB.fromHandle h)
-        questions = (,,,) <$> question1 <*> question2 <*> question3 <*> question4
-    answers <- F.purely P.fold questions invoices
+challenge :: IO ()
+challenge = do
+    begin <- getCurrentTime
+    answers <- IO.withFile "Iowa_Liquor_Sales.csv" IO.ReadMode $ \h ->
+        let invoices = parseInvoice (PB.fromHandle h)
+            questions = (,,,) <$> question1 <*> question2 <*> question3 <*> question4
+        in F.purely P.fold questions invoices
+    end <- getCurrentTime
+    print (diffUTCTime end begin)
     print answers
 
 parseInvoice :: Monad m => Producer BS.ByteString m () -> Producer Invoice m ()
@@ -109,11 +115,11 @@ data Entry k v = Entry
     , val :: v
     } deriving (Show)
 
-instance Hashable k => Hashable (Entry k v) where
-    hashWithSalt s = hashWithSalt s . key
-
 instance Eq k => Eq (Entry k v) where
     (==) = (==) `on` key
+
+instance Hashable k => Hashable (Entry k v) where
+    hashWithSalt s = hashWithSalt s . key
 
 groupOn
     :: (Eq key, Hashable key, Monoid val)
