@@ -127,10 +127,10 @@ groupOn
     -> (a -> val)
     -> F.Fold (key, val) b
     -> F.Fold a b
-groupOn key val sumary = F.Fold step mempty extract
+groupOn key val summary = F.Fold step mempty extract
   where
     step hm x = HM.insertWith (<>) (key x) (val x) hm
-    extract = F.fold sumary . HM.mapWithKey (,)
+    extract = F.fold summary . HM.mapWithKey (,)
 
 --What's the most popular non-beer beverage bought in 2016?
 question1 :: F.Fold Invoice (Maybe (Entry Int Text, Sum Int))
