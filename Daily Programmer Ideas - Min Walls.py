@@ -10,16 +10,12 @@ def main():
     print_graph(G)
     A, B = find_nodes(G, ['A', 'B'])
     F = make_vertex_flow(G)
-    # print_graph(F)
-    try:
-        cuts = vertex_cuts(F, A, B)
-        print_result(grid, cuts)
-    except nx.exception.NetworkXUnbounded:
-        print("answer = -1 (touching)")
+    soln = vertex_cuts(F, A, B)
+    print_soln(grid, *soln)
 
-def print_result(grid, cuts):
-    print(f'result = {len(cuts)}')
-    for row, col in cuts:
+def print_soln(grid, result, cut_set):
+    print(f'result = {result}')
+    for row, col in cut_set:
         grid[row][col] = '@'
     for line in grid:
         print(''.join(line))
@@ -29,8 +25,11 @@ def read_input():
     return list(list(line.strip()) for line in lines[1:])
 
 def vertex_cuts(F, s, t):
-    cut, (reachable, not_reachable) = nx.minimum_cut(F, (s, 'out'), (t, 'in'))
-    return [u[0] for u in reachable for v in F[u] if v in not_reachable]
+    try:
+        cut, (reachable, not_reachable) = nx.minimum_cut(F, (s, 'out'), (t, 'in'))
+        return cut, [u[0] for u in reachable for v in F[u] if v in not_reachable]
+    except nx.exception.NetworkXUnbounded:
+        return -1, []
 
 def make_vertex_flow(G):
     '''
